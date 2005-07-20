@@ -1,0 +1,29 @@
+= TracAccountManager =
+
+A user account management plugin for Trac.
+
+== Installation ==
+ 1. Run: python setup.py bdist_egg
+ 2. If necessary create a folder called "plugins" in your Trac environment.
+ 3. Copy the .egg file from the dist folder created by step 1 into the "plugins"
+    directory of your Trac environment.
+
+== Configuration ==
+Add one of the following sections to trac.ini to manage an Apache htpasswd or
+htdigest file.
+
+=== Htpasswd ===
+{{{
+[account-manager]
+password_format = htpassd
+password_file = /path/to/trac.htpasswd
+}}}
+
+=== Htdigest ===
+{{{
+[account-manager]
+password_format = htdigest
+password_file = /path/to/trac.htdigest
+htdigest_realm = TracDigestRealm
+}}}
+
