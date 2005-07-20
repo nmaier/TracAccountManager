@@ -43,14 +43,6 @@ class IPasswordStore(Interface):
         """Deletes the user account.
         """
 
-# os.urandom was added in Python 2.4
-# try to fall back on reading from /dev/urandom on older Python versions
-try:
-    from os import urandom
-except ImportError:
-    def urandom(n):
-        return open('/dev/urandom').read(n)
-
 class AccountManager(Component):
     """The AccountManager component handles all user account management methods
     provided by the IPasswordStore interface.
@@ -70,6 +62,8 @@ class AccountManager(Component):
         for store in self.stores:
             if store.config_key() == fmt:
                 return store
+        raise TracError('No password store found.  Please configure '
+                        '"account-manager.password_format" in trac.ini.')
 
 
 class DispatchProperty(object):

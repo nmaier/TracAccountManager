@@ -15,7 +15,7 @@ htdigest file.
 === Htpasswd ===
 {{{
 [account-manager]
-password_format = htpassd
+password_format = htpasswd
 password_file = /path/to/trac.htpasswd
 }}}
 
