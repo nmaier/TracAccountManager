@@ -137,7 +137,7 @@ class RegistrationModule(Component):
 
     # ITemplateProvider
     
-    def get_htdocs_dir(self):
+    def get_htdocs_dirs(self):
         """Return the absolute path of a directory containing additional
         static resources (such as images, style sheets, etc).
         """
