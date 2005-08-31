@@ -71,18 +71,18 @@ class AccountModule(Component):
 
     # ITemplateProvider
     
-    def get_htdocs_dir(self):
+    def get_htdocs_dirs(self):
         """Return the absolute path of a directory containing additional
         static resources (such as images, style sheets, etc).
         """
-        return None
+        return []
 
-    def get_templates_dir(self):
+    def get_templates_dirs(self):
         """Return the absolute path of the directory containing the provided
         ClearSilver templates.
         """
         from pkg_resources import resource_filename
-        return resource_filename(__name__, 'templates')
+        return [resource_filename(__name__, 'templates')]
 
 class RegistrationModule(Component):
     """Provides users the ability to register a new account.
@@ -141,12 +141,12 @@ class RegistrationModule(Component):
         """Return the absolute path of a directory containing additional
         static resources (such as images, style sheets, etc).
         """
-        return None
+        return []
 
-    def get_templates_dir(self):
+    def get_templates_dirs(self):
         """Return the absolute path of the directory containing the provided
         ClearSilver templates.
         """
         from pkg_resources import resource_filename
-        return resource_filename(__name__, 'templates')
+        return [resource_filename(__name__, 'templates')]
 
