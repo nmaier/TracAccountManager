@@ -46,10 +46,11 @@ class AbstractPasswordFileStore(Component):
         return self._get_users(self._get_filename())
 
     def set_password(self, user, password):
-        self._update_file(self.prefix(user), self.userline(user, password))
+        return not self._update_file(self.prefix(user),
+                                     self.userline(user, password))
 
     def delete_user(self, user):
-        self._update_file(self.prefix(user), None)
+        return self._update_file(self.prefix(user), None)
 
     def _get_filename(self):
         return self.config.get('account-manager', 'password_file')
@@ -59,15 +60,19 @@ class AbstractPasswordFileStore(Component):
         written = False
         if os.path.exists(filename):
             for line in fileinput.input(filename, inplace=True):
-                if not line.startswith(prefix):
-                    print line,
-                elif not written and userline:
-                    print userline
+                if line.startswith(prefix):
+                    if not written and userline:
+                        print userline
                     written = True
-        if not written and userline:
+                else:
+                    print line,
+        if userline:
             f = open(filename, 'a')
-            print >>f, userline
-            f.close()
+            try:
+                print >>f, userline
+            finally:
+                f.close()
+        return written
 
 
 def salt():
