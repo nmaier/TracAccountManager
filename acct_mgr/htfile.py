@@ -52,6 +52,21 @@ class AbstractPasswordFileStore(Component):
     def delete_user(self, user):
         return self._update_file(self.prefix(user), None)
 
+    def check_password(self, user, password):
+        filename = self._get_filename()
+        if not os.path.exists(filename):
+            return False
+        prefix = self.prefix(user)
+        fd = file(filename)
+        try:
+            for line in fd:
+                if line.startswith(prefix):
+                    return self._check_userline(password, prefix,
+                                                line[len(prefix):-1])
+        finally:
+            fd.close()
+        return False
+
     def _get_filename(self):
         return self.config.get('account-manager', 'password_file')
 
@@ -104,8 +119,12 @@ class HtPasswdStore(AbstractPasswordFileStore):
         return user + ':'
 
     def userline(self, user, password):
-        return self.prefix(user) + md5crypt(password, salt(),
-                                            '$apr1$')
+        return self.prefix(user) + md5crypt(password, salt(), '$apr1$')
+
+    def _check_userline(self, password, prefix, suffix):
+        if not suffix.startswith('$apr1$'):
+            return False
+        return suffix == md5crypt(password, suffix[6:].split('$')[0], '$apr1$')
 
     def _get_users(self, filename):
         f = open(filename)
@@ -142,6 +161,9 @@ class HtDigestStore(AbstractPasswordFileStore):
     def userline(self, user, password):
         p = self.prefix(user)
         return p + md5.new(p + password).hexdigest()
+
+    def _check_userline(self, password, prefix, suffix):
+        return suffix == md5.new(prefix + password).hexdigest()
 
     def _get_users(self, filename):
         f = open(filename)

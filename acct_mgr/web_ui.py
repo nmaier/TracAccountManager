@@ -13,6 +13,8 @@ from __future__ import generators
 
 from trac import perm, util
 from trac.core import *
+from trac.web import auth
+from trac.web.api import IAuthenticator
 from trac.web.main import IRequestHandler
 from trac.web.chrome import INavigationContributor, ITemplateProvider
 
@@ -149,4 +151,57 @@ class RegistrationModule(Component):
         """
         from pkg_resources import resource_filename
         return [resource_filename(__name__, 'templates')]
+
+def if_enabled(func):
+    def wrap(self, *args, **kwds):
+        if not self.enabled:
+            return None
+        return func(self, *args, **kwds)
+    return wrap
+
+class LoginModule(auth.LoginModule):
+
+    def authenticate(self, req):
+        if req.method == 'POST' and req.path_info.startswith('/login'):
+            req.remote_user = self._remote_user(req)
+        return auth.LoginModule.authenticate(self, req)
+    authenticate = if_enabled(authenticate)
+
+    match_request = if_enabled(auth.LoginModule.match_request)
+
+    def process_request(self, req):
+        if req.path_info.startswith('/login') and req.authname == 'anonymous':
+            req.hdf['referer'] = self._referer(req)
+            if req.method == 'POST':
+                req.hdf['login.error'] = 'Invalid username or password'
+            return 'login.cs', None
+        return auth.LoginModule.process_request(self, req)
+
+    def _do_login(self, req):
+        if not req.remote_user:
+            req.redirect(self.env.abs_href())
+        return auth.LoginModule._do_login(self, req)
+
+    def _remote_user(self, req):
+        user = req.args.get('user')
+        if AccountManager(self.env).check_password(user,
+                req.args.get('password')):
+            return user
+        return None
+
+    def _redirect_back(self, req):
+        """Redirect the user back to the URL she came from."""
+        referer = self._referer(req)
+        if referer and not referer.startswith(req.base_url):
+            # don't redirect to external sites
+            referer = None
+        req.redirect(referer or self.env.abs_href())
+
+    def _referer(self, req):
+        return req.args.get('referer') or req.get_header('Referer')
+
+    def enabled(self):
+        # Users should disable the built-in authentication to use this one
+        return not self.env.is_component_enabled(auth.LoginModule)
+    enabled = property(enabled)
 

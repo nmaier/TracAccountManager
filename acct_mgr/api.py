@@ -37,6 +37,10 @@ class IPasswordStore(Interface):
         was updated.
         """
 
+    def check_password(self, user, password):
+        """Checks if the password is valid for the user.
+        """
+
     def delete_user(self, user):
         """Deletes the user account.
         Returns True if the account existed and was deleted, False otherwise.
@@ -85,6 +89,9 @@ class AccountManager(Component):
             self._notify('created', user, password)
         else:
             self._notify('password_changed', user, password)
+
+    def check_password(self, user, password):
+        return self.password_store.check_password(user, password)
 
     def delete_user(self, user):
         if self.password_store.delete_user(user):
