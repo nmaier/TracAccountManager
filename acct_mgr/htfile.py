@@ -46,10 +46,26 @@ class AbstractPasswordFileStore(Component):
         return self._get_users(self._get_filename())
 
     def set_password(self, user, password):
-        self._update_file(self.prefix(user), self.userline(user, password))
+        return not self._update_file(self.prefix(user),
+                                     self.userline(user, password))
 
     def delete_user(self, user):
-        self._update_file(self.prefix(user), None)
+        return self._update_file(self.prefix(user), None)
+
+    def check_password(self, user, password):
+        filename = self._get_filename()
+        if not os.path.exists(filename):
+            return False
+        prefix = self.prefix(user)
+        fd = file(filename)
+        try:
+            for line in fd:
+                if line.startswith(prefix):
+                    return self._check_userline(password, prefix,
+                                                line[len(prefix):-1])
+        finally:
+            fd.close()
+        return False
 
     def _get_filename(self):
         return self.config.get('account-manager', 'password_file')
@@ -59,15 +75,19 @@ class AbstractPasswordFileStore(Component):
         written = False
         if os.path.exists(filename):
             for line in fileinput.input(filename, inplace=True):
-                if not line.startswith(prefix):
-                    print line,
-                elif not written and userline:
-                    print userline
+                if line.startswith(prefix):
+                    if not written and userline:
+                        print userline
                     written = True
-        if not written and userline:
+                else:
+                    print line,
+        if userline:
             f = open(filename, 'a')
-            print >>f, userline
-            f.close()
+            try:
+                print >>f, userline
+            finally:
+                f.close()
+        return written
 
 
 def salt():
@@ -99,8 +119,12 @@ class HtPasswdStore(AbstractPasswordFileStore):
         return user + ':'
 
     def userline(self, user, password):
-        return self.prefix(user) + md5crypt(password, salt(),
-                                            '$apr1$')
+        return self.prefix(user) + md5crypt(password, salt(), '$apr1$')
+
+    def _check_userline(self, password, prefix, suffix):
+        if not suffix.startswith('$apr1$'):
+            return False
+        return suffix == md5crypt(password, suffix[6:].split('$')[0], '$apr1$')
 
     def _get_users(self, filename):
         f = open(filename)
@@ -137,6 +161,9 @@ class HtDigestStore(AbstractPasswordFileStore):
     def userline(self, user, password):
         p = self.prefix(user)
         return p + md5.new(p + password).hexdigest()
+
+    def _check_userline(self, password, prefix, suffix):
+        return suffix == md5.new(prefix + password).hexdigest()
 
     def _get_users(self, filename):
         f = open(filename)

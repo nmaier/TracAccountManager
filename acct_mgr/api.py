@@ -9,10 +9,6 @@
 #
 # Author: Matthew Good <trac@matt-good.net>
 
-from __future__ import generators
-
-import inspect
-
 from trac.core import *
 
 class IPasswordStore(Interface):
@@ -37,10 +33,33 @@ class IPasswordStore(Interface):
     def set_password(self, user, password):
         """Sets the password for the user.  This should create the user account
         if it doesn't already exist.
+        Returns True if a new account was created, False if an existing account
+        was updated.
+        """
+
+    def check_password(self, user, password):
+        """Checks if the password is valid for the user.
         """
 
     def delete_user(self, user):
         """Deletes the user account.
+        Returns True if the account existed and was deleted, False otherwise.
+        """
+
+class IAccountChangeListener(Interface):
+    """An interface for receiving account change events.
+    """
+
+    def user_added(self, user, password):
+        """New user
+        """
+
+    def user_password_changed(self, user, password):
+        """Password changed
+        """
+
+    def user_deleted(self, user):
+        """User deleted
         """
 
 class AccountManager(Component):
@@ -52,33 +71,54 @@ class AccountManager(Component):
     setting.
     """
 
+    implements(IAccountChangeListener)
+
     stores = ExtensionPoint(IPasswordStore)
+    change_listeners = ExtensionPoint(IAccountChangeListener)
 
-    def _dispatch(self, func):
-        return getattr(self._get_store(), func)
+    # Public API
 
-    def _get_store(self):
+    def get_users(self):
+        return self.password_store.get_users()
+
+    def has_user(self, user):
+        return self.password_store.has_user(user)
+
+    def set_password(self, user, password):
+        if self.password_store.set_password(user, password):
+            self._notify('created', user, password)
+        else:
+            self._notify('password_changed', user, password)
+
+    def check_password(self, user, password):
+        return self.password_store.check_password(user, password)
+
+    def delete_user(self, user):
+        if self.password_store.delete_user(user):
+            self._notify('deleted', user)
+
+    def password_store(self):
         fmt = self.config.get('account-manager', 'password_format')
         for store in self.stores:
             if store.config_key() == fmt:
                 return store
         raise TracError('No password store found.  Please configure '
                         '"account-manager.password_format" in trac.ini.')
+    password_store = property(password_store)
 
+    def _notify(self, func, *args):
+        func = 'user_' + func
+        for l in self.change_listeners:
+            getattr(l, func)(*args)
 
-class DispatchProperty(object):
-    def __init__(self, name, fget):
-        self.name = name
-        self.fget = fget
+    # IAccountChangeListener methods
 
-    def __get__(self, obj, objtype=None):
-        if obj is None:
-            return self
-        return self.fget(obj, self.name)
+    def user_created(self, user, password):
+        self.log.info('Created new user: %s' % user)
 
-# Add the IPasswordStore methods to the AccountManager to dispatch to the
-# active implementation
-for func, v in inspect.getmembers(IPasswordStore, inspect.ismethod):
-    setattr(AccountManager, func, DispatchProperty(func, AccountManager._dispatch))
+    def user_password_changed(self, user, password):
+        self.log.info('Updated password for user: %s' % user)
 
+    def user_deleted(self, user):
+        self.log.info('Deleted user: %s' % user)
 
