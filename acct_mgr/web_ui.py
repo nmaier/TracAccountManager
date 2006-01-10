@@ -17,6 +17,7 @@ from trac.web import auth
 from trac.web.api import IAuthenticator
 from trac.web.main import IRequestHandler
 from trac.web.chrome import INavigationContributor, ITemplateProvider
+from trac.util import Markup
 
 from api import AccountManager
 
@@ -34,8 +35,8 @@ class AccountModule(Component):
 
     def get_navigation_items(self, req):
         if req.authname != 'anonymous':
-            yield 'metanav', 'account', '<a href="%s">My Account</a>' \
-                  % (self.env.href.account())
+            yield 'metanav', 'account', Markup('<a href="%s">My Account</a>',
+                                               (self.env.href.account()))
 
     # IRequestHandler methods
     def match_request(self, req):
@@ -100,8 +101,8 @@ class RegistrationModule(Component):
 
     def get_navigation_items(self, req):
         if req.authname == 'anonymous':
-            yield 'metanav', 'register', '<a href="%s">Register</a>' \
-                  % (self.env.href.register())
+            yield 'metanav', 'register', Markup('<a href="%s">Register</a>',
+                                                (self.env.href.register()))
 
     # IRequestHandler methods
 
