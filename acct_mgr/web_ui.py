@@ -164,7 +164,7 @@ class LoginModule(auth.LoginModule):
 
     def authenticate(self, req):
         if req.method == 'POST' and req.path_info.startswith('/login'):
-            req.remote_user = self._remote_user(req)
+            req.environ['REMOTE_USER'] = self._remote_user(req)
         return auth.LoginModule.authenticate(self, req)
     authenticate = if_enabled(authenticate)
 
