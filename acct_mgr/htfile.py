@@ -74,7 +74,7 @@ class AbstractPasswordFileStore(Component):
         filename = self._get_filename()
         written = False
         if os.path.exists(filename):
-            for line in fileinput.input(filename, inplace=True):
+            for line in fileinput.input(str(filename), inplace=True):
                 if line.startswith(prefix):
                     if not written and userline:
                         print userline
