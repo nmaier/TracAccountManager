@@ -50,7 +50,7 @@ class IAccountChangeListener(Interface):
     """An interface for receiving account change events.
     """
 
-    def user_added(self, user, password):
+    def user_created(self, user, password):
         """New user
         """
 
