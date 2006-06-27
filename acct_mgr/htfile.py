@@ -149,8 +149,9 @@ class HtDigestStore(AbstractPasswordFileStore):
 
     implements(IPasswordStore)
 
-    def __init__(self):
-        self.realm = self.config.get('account-manager', 'htdigest_realm')
+    def realm(self):
+        return self.config.get('account-manager', 'htdigest_realm')
+    realm = property(realm)
 
     def config_key(self):
         return 'htdigest'
@@ -166,11 +167,12 @@ class HtDigestStore(AbstractPasswordFileStore):
         return suffix == md5.new(prefix + password).hexdigest()
 
     def _get_users(self, filename):
+        _realm = self.realm
         f = open(filename)
         for line in f:
             args = line.split(':')[:2]
             if len(args) == 2:
                 user, realm = args
-                if realm == self.realm and user:
+                if realm == _realm and user:
                     yield user
 
