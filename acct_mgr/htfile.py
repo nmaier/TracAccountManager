@@ -21,6 +21,18 @@ from trac.core import *
 
 from api import IPasswordStore
 
+# check for the availability of the "crypt" module for checking passwords on
+# Unix-like platforms
+# MD5 is still used when adding/updating passwords
+try:
+    from crypt import crypt
+except ImportError:
+    def crypt(password, salt):
+        raise NotImplementedError('The "crypt" module is unavailable on this '
+                                  'platform.  Only MD5 passwords (starting '
+                                  'with "$apr1$") are supported in the '
+                                  'htpasswd file.')
+
 # os.urandom was added in Python 2.4
 # try to fall back on reading from /dev/urandom on older Python versions
 try:
@@ -122,9 +134,14 @@ class HtPasswdStore(AbstractPasswordFileStore):
         return self.prefix(user) + md5crypt(password, salt(), '$apr1$')
 
     def _check_userline(self, password, prefix, suffix):
-        if not suffix.startswith('$apr1$'):
-            return False
-        return suffix == md5crypt(password, suffix[6:].split('$')[0], '$apr1$')
+        if suffix.startswith('$apr1$'):
+            return suffix == md5crypt(password, suffix[6:].split('$')[0],
+                                      '$apr1$')
+        else:
+            # crypt passwords are only supported on Unix-like systems
+            # a dummy crypt implementation is provided above that throws
+            # a NotImplementedError if the crypt module is unavailable
+            return suffix == crypt(password, suffix[:2])
 
     def _get_users(self, filename):
         f = open(filename)
