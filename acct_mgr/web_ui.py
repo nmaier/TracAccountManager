@@ -121,6 +121,10 @@ class RegistrationModule(Component):
         mgr = AccountManager(self.env)
 
         user = req.args.get('user')
+        if not user:
+            req.hdf['registration.error'] = 'Username cannot be empty.'
+            return
+
         if mgr.has_user(user):
             req.hdf['registration.error'] = \
                 'Another account with that name already exists.'
