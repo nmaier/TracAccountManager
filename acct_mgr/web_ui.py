@@ -130,6 +130,14 @@ class RegistrationModule(Component):
                 'Another account with that name already exists.'
             return
 
+        # disallow registration of accounts which have existing permissions
+        permission_system = perm.PermissionSystem(self.env)
+        if permission_system.get_user_permissions(user) != \
+           permission_system.get_user_permissions('authenticated'):
+            req.hdf['registration.error'] = \
+                'Another account with that name already exists.'
+            return
+
         password = req.args.get('password')
         if not password:
             req.hdf['registration.error'] = 'Password cannot be empty.'
