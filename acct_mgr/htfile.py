@@ -83,23 +83,31 @@ class AbstractPasswordFileStore(Component):
         return self.config.get('account-manager', 'password_file')
 
     def _update_file(self, prefix, userline):
+        """If `userline` is empty the line starting with `prefix` is 
+        removed from the user file.  Otherwise the line starting with `prefix`
+        is updated to `userline`.  If no line starts with `prefix` the
+        `userline` is appended to the file.
+
+        Returns `True` if a line matching `prefix` was updated,
+        `False` otherwise.
+        """
         filename = self._get_filename()
-        written = False
+        matched = False
         if os.path.exists(filename):
             for line in fileinput.input(str(filename), inplace=True):
                 if line.startswith(prefix):
-                    if not written and userline:
+                    if not matched and userline:
                         print userline
-                    written = True
+                    matched = True
                 else:
                     print line,
-        if userline:
+        if not matched and userline:
             f = open(filename, 'a')
             try:
                 print >>f, userline
             finally:
                 f.close()
-        return written
+        return matched
 
 
 def salt():
