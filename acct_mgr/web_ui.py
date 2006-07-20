@@ -197,8 +197,10 @@ class LoginModule(auth.LoginModule):
 
     def _remote_user(self, req):
         user = req.args.get('user')
-        if AccountManager(self.env).check_password(user,
-                req.args.get('password')):
+        password = req.args.get('password')
+        if not user or not password:
+            return None
+        if AccountManager(self.env).check_password(user, password):
             return user
         return None
 
