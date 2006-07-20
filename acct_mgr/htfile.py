@@ -18,6 +18,7 @@ import fileinput
 from md5crypt import md5crypt
 
 from trac.core import *
+from trac.config import Option
 
 from api import IPasswordStore
 
@@ -49,13 +50,16 @@ class AbstractPasswordFileStore(Component):
     See the concrete sub-classes for usage information.
     """
 
+    filename = Option('account-manager', 'password_file')
+
     def has_user(self, user):
         return user in self.get_users()
 
     def get_users(self):
-        if not os.path.exists(self._get_filename()):
+        filename = self.filename
+        if not os.path.exists(filename):
             return []
-        return self._get_users(self._get_filename())
+        return self._get_users(filename)
 
     def set_password(self, user, password):
         return not self._update_file(self.prefix(user),
@@ -65,7 +69,7 @@ class AbstractPasswordFileStore(Component):
         return self._update_file(self.prefix(user), None)
 
     def check_password(self, user, password):
-        filename = self._get_filename()
+        filename = self.filename
         if not os.path.exists(filename):
             return False
         prefix = self.prefix(user)
@@ -79,9 +83,6 @@ class AbstractPasswordFileStore(Component):
             fd.close()
         return False
 
-    def _get_filename(self):
-        return self.config.get('account-manager', 'password_file')
-
     def _update_file(self, prefix, userline):
         """If `userline` is empty the line starting with `prefix` is 
         removed from the user file.  Otherwise the line starting with `prefix`
@@ -91,7 +92,7 @@ class AbstractPasswordFileStore(Component):
         Returns `True` if a line matching `prefix` was updated,
         `False` otherwise.
         """
-        filename = self._get_filename()
+        filename = self.filename
         matched = False
         if os.path.exists(filename):
             for line in fileinput.input(str(filename), inplace=True):
@@ -122,10 +123,11 @@ def salt():
 class HtPasswdStore(AbstractPasswordFileStore):
     """Manages user accounts stored in Apache's htpasswd format.
 
-    To use this implementation add the following configuration section to trac.ini
+    To use this implementation add the following configuration section to
+    trac.ini:
     {{{
     [account-manager]
-    password_format = htpasswd
+    password_store = HtPasswdStore
     password_file = /path/to/trac.htpasswd
     }}}
     """
@@ -162,10 +164,11 @@ class HtPasswdStore(AbstractPasswordFileStore):
 class HtDigestStore(AbstractPasswordFileStore):
     """Manages user accounts stored in Apache's htdigest format.
 
-    To use this implementation add the following configuration section to trac.ini
+    To use this implementation add the following configuration section to
+    trac.ini:
     {{{
     [account-manager]
-    password_format = htdigest
+    password_store = HtDigestStore
     password_file = /path/to/trac.htdigest
     htdigest_realm = TracDigestRealm
     }}}
@@ -174,9 +177,7 @@ class HtDigestStore(AbstractPasswordFileStore):
 
     implements(IPasswordStore)
 
-    def realm(self):
-        return self.config.get('account-manager', 'htdigest_realm')
-    realm = property(realm)
+    realm = Option('account-manager', 'htdigest_realm')
 
     def config_key(self):
         return 'htdigest'

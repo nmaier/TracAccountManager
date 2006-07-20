@@ -10,6 +10,7 @@
 # Author: Matthew Good <trac@matt-good.net>
 
 from trac.core import *
+from trac.config import Option, ExtensionOption
 
 class IPasswordStore(Interface):
     """An interface for Components that provide a storage method for users and
@@ -17,7 +18,13 @@ class IPasswordStore(Interface):
     """
 
     def config_key(self):
-        """Returns a string used to identify this implementation in the config.
+        """
+        '''Deprecated''': new implementations of this interface are not required
+        to implement this method, since the prefered way to configure the
+        `IPasswordStore` implemenation is by using its class name in
+        the `password_store` option.
+
+        Returns a string used to identify this implementation in the config.
         This password storage implementation will be used if the value of
         the config property "account-manager.password_format" matches.
         """
@@ -73,6 +80,9 @@ class AccountManager(Component):
 
     implements(IAccountChangeListener)
 
+    _password_store = ExtensionOption('account-manager', 'password_store',
+                                      IPasswordStore)
+    _password_format = Option('account-manager', 'password_format')
     stores = ExtensionPoint(IPasswordStore)
     change_listeners = ExtensionPoint(IAccountChangeListener)
 
@@ -98,12 +108,19 @@ class AccountManager(Component):
             self._notify('deleted', user)
 
     def password_store(self):
-        fmt = self.config.get('account-manager', 'password_format')
-        for store in self.stores:
-            if store.config_key() == fmt:
-                return store
-        raise TracError('No password store found.  Please configure '
-                        '"account-manager.password_format" in trac.ini.')
+        try:
+            return self._password_store
+        except AttributeError:
+            # fall back on old "password_format" option
+            fmt = self._password_format
+            for store in self.stores:
+                config_key = getattr(store, 'config_key')
+                if config_key is None:
+                    continue
+                if config_key() == fmt:
+                    return store
+            # if the "password_format" is not set re-raise the AttributeError
+            raise
     password_store = property(password_store)
 
     def _notify(self, func, *args):
