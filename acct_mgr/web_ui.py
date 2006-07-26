@@ -174,6 +174,8 @@ def if_enabled(func):
 
 class LoginModule(auth.LoginModule):
 
+    implements(ITemplateProvider)
+
     def authenticate(self, req):
         if req.method == 'POST' and req.path_info.startswith('/login'):
             req.environ['REMOTE_USER'] = self._remote_user(req)
@@ -219,4 +221,19 @@ class LoginModule(auth.LoginModule):
         # Users should disable the built-in authentication to use this one
         return not self.env.is_component_enabled(auth.LoginModule)
     enabled = property(enabled)
+
+    # ITemplateProvider
+    
+    def get_htdocs_dirs(self):
+        """Return the absolute path of a directory containing additional
+        static resources (such as images, style sheets, etc).
+        """
+        return []
+
+    def get_templates_dirs(self):
+        """Return the absolute path of the directory containing the provided
+        ClearSilver templates.
+        """
+        from pkg_resources import resource_filename
+        return [resource_filename(__name__, 'templates')]
 
