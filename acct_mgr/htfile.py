@@ -12,6 +12,7 @@
 from __future__ import generators
 
 from binascii import hexlify
+import errno
 import md5
 import os.path
 import fileinput
@@ -94,7 +95,7 @@ class AbstractPasswordFileStore(Component):
         """
         filename = self.filename
         matched = False
-        if os.path.exists(filename):
+        try:
             for line in fileinput.input(str(filename), inplace=True):
                 if line.startswith(prefix):
                     if not matched and userline:
@@ -102,6 +103,15 @@ class AbstractPasswordFileStore(Component):
                     matched = True
                 else:
                     print line,
+        except EnvironmentError, e:
+            if e.errno == errno.ENOENT:
+                pass # ignore when file doesn't exist and create it below
+            elif e.errno == errno.EACCES:
+                raise TracError('The password file could not be updated.  '
+                                'Trac requires read and write access to both '
+                                'the password file and its parent directory.')
+            else:
+                raise
         if not matched and userline:
             f = open(filename, 'a')
             try:
