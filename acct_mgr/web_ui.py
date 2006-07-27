@@ -21,6 +21,32 @@ from trac.util import Markup
 
 from api import AccountManager
 
+def _create_user(req, env):
+    mgr = AccountManager(env)
+
+    user = req.args.get('user')
+    if not user:
+        raise TracError('Username cannot be empty.')
+
+    if mgr.has_user(user):
+        raise TracError('Another account with that name already exists.')
+
+    # disallow registration of accounts which have existing permissions
+    permission_system = perm.PermissionSystem(env)
+    if permission_system.get_user_permissions(user) != \
+       permission_system.get_user_permissions('authenticated'):
+        raise TracError('Another account with that name already exists.')
+
+    password = req.args.get('password')
+    if not password:
+        raise TracError('Password cannot be empty.')
+
+    if password != req.args.get('password_confirm'):
+        raise TracError('The passwords must match.')
+
+    mgr.set_password(user, password)
+
+
 class AccountModule(Component):
     """Allows users to change their password or delete their account.
     The settings for the AccountManager module must be set in trac.ini
@@ -114,41 +140,14 @@ class RegistrationModule(Component):
             req.redirect(self.env.href.account())
         action = req.args.get('action')
         if req.method == 'POST' and action == 'create':
-            self._do_create(req)
+            try:
+                _create_user(req, self.env)
+            except TracError, e:
+                req.hdf['registration.error'] = e.message
+            else:
+                req.redirect(self.env.href.login())
         return 'register.cs', None
 
-    def _do_create(self, req):
-        mgr = AccountManager(self.env)
-
-        user = req.args.get('user')
-        if not user:
-            req.hdf['registration.error'] = 'Username cannot be empty.'
-            return
-
-        if mgr.has_user(user):
-            req.hdf['registration.error'] = \
-                'Another account with that name already exists.'
-            return
-
-        # disallow registration of accounts which have existing permissions
-        permission_system = perm.PermissionSystem(self.env)
-        if permission_system.get_user_permissions(user) != \
-           permission_system.get_user_permissions('authenticated'):
-            req.hdf['registration.error'] = \
-                'Another account with that name already exists.'
-            return
-
-        password = req.args.get('password')
-        if not password:
-            req.hdf['registration.error'] = 'Password cannot be empty.'
-            return
-
-        if password != req.args.get('password_confirm'):
-            req.hdf['registration.error'] = 'The passwords must match.'
-            return
-
-        mgr.set_password(user, password)
-        req.redirect(self.env.href.login())
 
     # ITemplateProvider
     
