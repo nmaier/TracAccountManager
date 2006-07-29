@@ -1,4 +1,4 @@
-# -*- coding: iso8859-1 -*-
+# -*- coding: utf8 -*-
 #
 # Copyright (C) 2005 Matthew Good <trac@matt-good.net>
 #

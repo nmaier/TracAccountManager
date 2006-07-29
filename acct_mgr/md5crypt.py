@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # Based on FreeBSD src/lib/libcrypt/crypt.c 1.2
 # http://www.freebsd.org/cgi/cvsweb.cgi/~checkout~/src/lib/libcrypt/crypt.c?rev=1.2&content-type=text/plain
 

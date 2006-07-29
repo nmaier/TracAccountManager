@@ -7,7 +7,7 @@ setup(
     version = '0.1.2',
     author = 'Matthew Good',
     author_email = 'trac@matt-good.net',
-    url = 'http://trac-hacks.swapoff.org/wiki/AccountManagerPlugin',
+    url = 'http://trac-hacks.org/wiki/AccountManagerPlugin',
     description = 'User account management plugin for Trac',
 
     license = '''
