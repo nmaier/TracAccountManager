@@ -63,6 +63,8 @@ class AbstractPasswordFileStore(Component):
         return self._get_users(filename)
 
     def set_password(self, user, password):
+        user = user.encode('utf-8')
+        password = password.encode('utf-8')
         return not self._update_file(self.prefix(user),
                                      self.userline(user, password))
 
@@ -73,7 +75,8 @@ class AbstractPasswordFileStore(Component):
         filename = self.filename
         if not os.path.exists(filename):
             return False
-        prefix = self.prefix(user)
+        prefix = self.prefix(user.encode('utf-8'))
+        password = password.encode('utf-8')
         fd = file(filename)
         try:
             for line in fd:
@@ -168,7 +171,7 @@ class HtPasswdStore(AbstractPasswordFileStore):
         for line in f:
             user = line.split(':', 1)[0]
             if user:
-                yield user
+                yield user.decode('utf-8')
 
 
 class HtDigestStore(AbstractPasswordFileStore):
@@ -210,5 +213,5 @@ class HtDigestStore(AbstractPasswordFileStore):
             if len(args) == 2:
                 user, realm = args
                 if realm == _realm and user:
-                    yield user
+                    yield user.decode('utf-8')
 
