@@ -25,6 +25,10 @@
    <input type="password" id="password" name="password" class="textwidget" size="20" />
   </div>
   <input type="submit" value="Login" />
+
+  <?cs if trac.href.reset_password ?>
+  <p><a href="<?cs var:trac.href.reset_password ?>">Forgot your password?</a></p>
+  <?cs /if ?>
  </form>
 
 </div>

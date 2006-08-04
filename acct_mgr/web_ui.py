@@ -11,8 +11,13 @@
 
 from __future__ import generators
 
+import random
+import string
+
 from trac import perm, util
 from trac.core import *
+from trac.config import IntOption
+from trac.notification import NotificationSystem, NotifyEmail
 from trac.web import auth
 from trac.web.api import IAuthenticator
 from trac.web.main import IRequestHandler
@@ -47,13 +52,38 @@ def _create_user(req, env):
     mgr.set_password(user, password)
 
 
+class PasswordResetNotification(NotifyEmail):
+    template_name = 'reset_password_email.cs'
+
+    def get_recipients(self, resid):
+        self.env.log.info(resid)
+        return ([resid],[])
+
+    def notify(self, username, password):
+        self.env.log.info("Calling notify")
+        self.hdf['account.username'] = username
+        self.hdf['account.password'] = password
+        self.hdf['login.link'] = self.env.abs_href.login()
+
+        projname = self.config.get('project', 'name')
+        subject = '[%s] Trac password reset for user: %s' % (projname, username)
+
+        NotifyEmail.notify(self, username, subject)
+
+
 class AccountModule(Component):
-    """Allows users to change their password or delete their account.
-    The settings for the AccountManager module must be set in trac.ini
-    in order to use this.
+    """Allows users to change their password, reset their password if they've
+    forgotten it, or delete their account.  The settings for the AccountManager
+    module must be set in trac.ini in order to use this.
     """
 
     implements(INavigationContributor, IRequestHandler, ITemplateProvider)
+
+    _password_chars = string.ascii_letters + string.digits
+    password_length = IntOption('account-manager', 'generated_password_length', 8,
+                                'Length of the randomly-generated passwords '
+                                'created when resetting the password for an '
+                                'account.')
 
     #INavigationContributor methods
     def get_active_navigation_item(self, req):
@@ -62,13 +92,21 @@ class AccountModule(Component):
     def get_navigation_items(self, req):
         if req.authname != 'anonymous':
             yield 'metanav', 'account', Markup('<a href="%s">My Account</a>',
-                                               (self.env.href.account()))
+                                               (req.href.account()))
 
     # IRequestHandler methods
     def match_request(self, req):
-        return req.path_info == '/account'
+        return req.path_info in ('/account', '/reset_password')
 
     def process_request(self, req):
+        if req.path_info == '/account':
+            self._do_account(req)
+            return 'account.cs', None
+        elif req.path_info == '/reset_password':
+            self._do_reset_password(req)
+            return 'reset_password.cs', None
+
+    def _do_account(self, req):
         if req.authname == 'anonymous':
             req.redirect(self.env.href.wiki())
         action = req.args.get('action')
@@ -77,7 +115,37 @@ class AccountModule(Component):
                 self._do_change_password(req)
             elif action == 'delete':
                 self._do_delete(req)
-        return 'account.cs', None
+
+    def _do_reset_password(self, req):
+        if req.authname != 'anonymous':
+            req.hdf['reset.logged_in'] = True
+            req.hdf['account_href'] = req.href.account()
+            return
+        if req.method == 'POST':
+            username = req.args.get('username')
+            email = req.args.get('email')
+            if not username:
+                req.hdf['reset.error'] = 'Username is required'
+                return
+            if not email:
+                req.hdf['reset.error'] = 'Email is required'
+                return
+
+            notifier = PasswordResetNotification(self.env)
+
+            if email != notifier.email_map.get(username):
+                req.hdf['reset.error'] = 'The email and username do not ' \
+                                         'match a known account.'
+                return
+
+            new_password = self._random_password()
+            notifier.notify(username, new_password)
+            AccountManager(self.env).set_password(username, new_password)
+            req.hdf['reset.sent_to_email'] = email
+
+    def _random_password(self):
+        return ''.join([random.choice(self._password_chars)
+                        for _ in xrange(self.password_length)])
 
     def _do_change_password(self, req):
         user = req.authname
@@ -112,6 +180,7 @@ class AccountModule(Component):
         """
         from pkg_resources import resource_filename
         return [resource_filename(__name__, 'templates')]
+
 
 class RegistrationModule(Component):
     """Provides users the ability to register a new account.
@@ -164,12 +233,14 @@ class RegistrationModule(Component):
         from pkg_resources import resource_filename
         return [resource_filename(__name__, 'templates')]
 
+
 def if_enabled(func):
     def wrap(self, *args, **kwds):
         if not self.enabled:
             return None
         return func(self, *args, **kwds)
     return wrap
+
 
 class LoginModule(auth.LoginModule):
 
@@ -186,6 +257,9 @@ class LoginModule(auth.LoginModule):
     def process_request(self, req):
         if req.path_info.startswith('/login') and req.authname == 'anonymous':
             req.hdf['referer'] = self._referer(req)
+            if self.env.is_component_enabled(AccountModule) \
+               and NotificationSystem(self.env).smtp_enabled:
+                req.hdf['trac.href.reset_password'] = req.href.reset_password()
             if req.method == 'POST':
                 req.hdf['login.error'] = 'Invalid username or password'
             return 'login.cs', None
