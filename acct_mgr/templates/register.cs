@@ -7,10 +7,6 @@
 
  <h1>Register an account</h1>
 
- <p>
- Description
- </p>
-
  <?cs if registration.error ?>
  <div class="system-message">
   <h2>Error</h2>
