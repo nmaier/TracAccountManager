@@ -69,6 +69,7 @@ class AbstractPasswordFileStore(Component):
                                      self.userline(user, password))
 
     def delete_user(self, user):
+        user = user.encode('utf-8')
         return self._update_file(self.prefix(user), None)
 
     def check_password(self, user, password):
