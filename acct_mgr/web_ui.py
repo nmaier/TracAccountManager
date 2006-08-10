@@ -71,7 +71,6 @@ class PasswordResetNotification(NotifyEmail):
     def notify(self, username, password):
         # save the username for use in `get_smtp_address`
         self._username = username
-        self.env.log.info("Calling notify")
         self.hdf['account.username'] = username
         self.hdf['account.password'] = password
         self.hdf['login.link'] = self.env.abs_href.login()
