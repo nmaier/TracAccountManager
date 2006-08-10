@@ -54,12 +54,23 @@ def _create_user(req, env):
 
 class PasswordResetNotification(NotifyEmail):
     template_name = 'reset_password_email.cs'
+    _username = None
 
     def get_recipients(self, resid):
-        self.env.log.info(resid)
         return ([resid],[])
 
+    def get_smtp_address(self, addr):
+        """Overrides `get_smtp_address` in order to prevent CCing users
+        other than the user whose password is being reset.
+        """
+        if addr == self._username:
+            return NotifyEmail.get_smtp_address(self, addr)
+        else:
+            return None
+
     def notify(self, username, password):
+        # save the username for use in `get_smtp_address`
+        self._username = username
         self.env.log.info("Calling notify")
         self.hdf['account.username'] = username
         self.hdf['account.password'] = password
