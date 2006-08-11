@@ -15,20 +15,43 @@
  <?cs /if ?>
 
  <form method="post" action="">
-  <div>
-   <input type="hidden" name="action" value="create" />
-   <label for="user">Username:</label>
-   <input type="text" id="user" name="user" class="textwidget" size="20" />
-  </div>
-  <div>
-   <label for="password">Password:</label>
-   <input type="password" id="password" name="password" class="textwidget" size="20" />
-  </div>
-  <div>
-   <label for="password_confirm">Confirm Password:</label>
-   <input type="password" id="password_confirm" name="password_confirm"
-          class="textwidget" size="20" />
-  </div>
+  <fieldset>
+   <legend>Required</legend>
+   <div>
+    <input type="hidden" name="action" value="create" />
+    <label>Username:
+     <input type="text" name="user" class="textwidget" size="20" />
+    </label>
+   </div>
+   <div>
+    <label>Password:
+     <input type="password" name="password" class="textwidget" size="20" />
+    </label>
+   </div>
+   <div>
+    <label>Confirm Password:
+     <input type="password" name="password_confirm"
+            class="textwidget" size="20" />
+    </label>
+   </div>
+  </fieldset>
+  <fieldset>
+   <legend>Optional</legend>
+   <div>
+    <label>Name:
+     <input type="text" name="name" class="textwidget" size="20" />
+    </label>
+   </div>
+   <div>
+    <label>Email:
+     <input type="text" name="email" class="textwidget" size="20" />
+    </label>
+    <?cs if reset_password_enabled ?>
+    <p>Entering your email address will enable you to reset your
+    password if you ever forget it.</p>
+    <?cs /if ?>
+   </div>
+  </fieldset>
   <input type="submit" value="Create account" />
  </form>
 

@@ -16,6 +16,12 @@
   <div class="field">
    <label>Confirm password: <input type="password" name="password_confirm" class="textwidget" /></label>
   </div>
+  <div class="field">
+   <label>Name: <input type="text" name="name" class="textwidget" /></label>
+  </div>
+  <div class="field">
+   <label>Email: <input type="text" name="email" class="textwidget" /></label>
+  </div>
   <p class="help">Add a new user account.</p>
   <div class="buttons">
    <input type="submit" name="add" value=" Add ">

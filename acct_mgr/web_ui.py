@@ -51,6 +51,22 @@ def _create_user(req, env):
 
     mgr.set_password(user, password)
 
+    db = env.get_db_cnx()
+    cursor = db.cursor()
+    for key in ('name', 'email'):
+        value = req.args.get(key)
+        if not value:
+            continue
+        cursor.execute("UPDATE session_attribute SET value=%s "
+                       "WHERE name=%s AND sid=%s AND authenticated=1",
+                       (value, key, user))
+        if not cursor.rowcount:
+            cursor.execute("INSERT INTO session_attribute "
+                           "(sid,authenticated,name,value) "
+                           "VALUES (%s,1,%s,%s)",
+                           (user, key, value))
+    db.commit()
+
 
 class PasswordResetNotification(NotifyEmail):
     template_name = 'reset_password_email.cs'
@@ -225,6 +241,10 @@ class RegistrationModule(Component):
                 req.hdf['registration.error'] = e.message
             else:
                 req.redirect(self.env.href.login())
+        req.hdf['reset_password_enabled'] = \
+            (self.env.is_component_enabled(AccountModule)
+             and NotificationSystem(self.env).smtp_enabled)
+
         return 'register.cs', None
 
 
