@@ -13,7 +13,7 @@ from __future__ import generators
 
 from binascii import hexlify
 import errno
-import md5
+import md5, sha
 import os.path
 import fileinput
 from md5crypt import md5crypt
@@ -161,6 +161,9 @@ class HtPasswdStore(AbstractPasswordFileStore):
         if suffix.startswith('$apr1$'):
             return suffix == md5crypt(password, suffix[6:].split('$')[0],
                                       '$apr1$')
+        elif suffix.startswith('{SHA}'):
+            return (suffix[5:] ==
+                    sha.new(password).digest().encode('base64')[:-1])
         else:
             # crypt passwords are only supported on Unix-like systems
             # a dummy crypt implementation is provided above that throws

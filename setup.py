@@ -32,4 +32,6 @@ this stuff is worth it, you can buy me a beer in return.   Matthew Good''',
             'acct_mgr.admin = acct_mgr.admin',
         ]
     },
+
+    test_suite = 'acct_mgr.tests.suite',
 )
