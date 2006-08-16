@@ -34,7 +34,7 @@ class AccountManagerAdminPage(Component):
         if req.method == 'POST':
             if req.args.get('add'):
                 try:
-                    _create_user(req, self.env)
+                    _create_user(req, self.env, check_permissions=False)
                 except TracError, e:
                     req.hdf['registration.error'] = e.message
             elif req.args.get('remove'):

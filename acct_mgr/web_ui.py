@@ -26,7 +26,7 @@ from trac.util import Markup
 
 from api import AccountManager
 
-def _create_user(req, env):
+def _create_user(req, env, check_permissions=True):
     mgr = AccountManager(env)
 
     user = req.args.get('user')
@@ -36,11 +36,12 @@ def _create_user(req, env):
     if mgr.has_user(user):
         raise TracError('Another account with that name already exists.')
 
-    # disallow registration of accounts which have existing permissions
-    permission_system = perm.PermissionSystem(env)
-    if permission_system.get_user_permissions(user) != \
-       permission_system.get_user_permissions('authenticated'):
-        raise TracError('Another account with that name already exists.')
+    if check_permissions:
+        # disallow registration of accounts which have existing permissions
+        permission_system = perm.PermissionSystem(env)
+        if permission_system.get_user_permissions(user) != \
+           permission_system.get_user_permissions('authenticated'):
+            raise TracError('Another account with that name already exists.')
 
     password = req.args.get('password')
     if not password:
