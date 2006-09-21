@@ -12,6 +12,7 @@
 from trac.core import *
 from trac.perm import PermissionSystem
 from trac.util import sorted
+from trac.util.datefmt import format_datetime
 from webadmin.web_ui import IAdminPageProvider
 
 from acct_mgr.api import AccountManager
@@ -43,7 +44,26 @@ class AccountManagerAdminPage(Component):
                 for account in sel:
                     self.account_manager.delete_user(account)
 
-        req.hdf['accounts'] = sorted(self.account_manager.get_users())
+        accounts = {}
+        for username in self.account_manager.get_users():
+            accounts[username] = {'username': username}
+
+        for username, name, email in self.env.get_known_users():
+            account = accounts.get(username)
+            if account:
+                account['name'] = name
+                account['email'] = email
+
+        db = self.env.get_db_cnx()
+        cursor = db.cursor()
+        cursor.execute("SELECT sid,last_visit FROM session WHERE authenticated=1")
+        for username, last_visit in cursor:
+            account = accounts.get(username)
+            if accounts and last_visit:
+                account['last_visit'] = format_datetime(last_visit)
+
+        req.hdf['accounts'] = sorted(accounts.itervalues(),
+                                     key=lambda acct: acct['username'])
 
         return 'admin_accounts.cs', None
- 
+

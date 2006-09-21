@@ -54,6 +54,16 @@ def _create_user(req, env, check_permissions=True):
 
     db = env.get_db_cnx()
     cursor = db.cursor()
+    cursor.execute("SELECT count(*) FROM session "
+                   "WHERE sid=%s AND authenticated=1",
+                   (user,))
+    exists, = cursor.fetchone()
+    if not exists:
+        cursor.execute("INSERT INTO session "
+                       "(sid, authenticated, last_visit) "
+                       "VALUES (%s, 1, 0)",
+                       (user,))
+
     for key in ('name', 'email'):
         value = req.args.get(key)
         if not value:

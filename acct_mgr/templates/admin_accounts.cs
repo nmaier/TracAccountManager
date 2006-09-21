@@ -32,12 +32,15 @@
 <form method="post">
  <table class="listing" id="accountlist">
   <thead>
-   <tr><th class="sel">&nbsp;</th><th>Account</th></tr>
+   <tr><th class="sel">&nbsp;</th><th>Account</th><th>Name</th><th>Email</th><th>Last Login</th></tr>
   </thead><tbody><?cs
   each:account = accounts ?>
    <tr>
-    <td><input type="checkbox" name="sel" value="<?cs var:account ?>" /></td>
-    <td><?cs var:account ?></td>
+    <td><input type="checkbox" name="sel" value="<?cs var:account.username ?>" /></td>
+    <td><?cs var:account.username ?></td>
+	<td><?cs var:account.name ?></td>
+	<td><?cs var:account.email ?></td>
+	<td><?cs var:account.last_visit ?></td>
    </tr><?cs
   /each ?></tbody>
  </table>
