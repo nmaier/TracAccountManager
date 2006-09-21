@@ -59,7 +59,7 @@ class AccountManagerAdminPage(Component):
         cursor.execute("SELECT sid,last_visit FROM session WHERE authenticated=1")
         for username, last_visit in cursor:
             account = accounts.get(username)
-            if accounts and last_visit:
+            if account and last_visit:
                 account['last_visit'] = format_datetime(last_visit)
 
         req.hdf['accounts'] = sorted(accounts.itervalues(),
