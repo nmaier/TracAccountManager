@@ -29,11 +29,7 @@ from api import IPasswordStore
 try:
     from crypt import crypt
 except ImportError:
-    def crypt(password, salt):
-        raise NotImplementedError('The "crypt" module is unavailable on this '
-                                  'platform.  Only MD5 passwords (starting '
-                                  'with "$apr1$") are supported in the '
-                                  'htpasswd file.')
+    crypt = None
 
 # os.urandom was added in Python 2.4
 # try to fall back on reading from /dev/urandom on older Python versions
@@ -155,7 +151,10 @@ class HtPasswdStore(AbstractPasswordFileStore):
         return user + ':'
 
     def userline(self, user, password):
-        return self.prefix(user) + md5crypt(password, salt(), '$apr1$')
+        if crypt is None:
+            return self.prefix(user) + md5crypt(password, salt(), '$apr1$')
+        else:
+            return self.prefix(user) + crypt(password, salt())
 
     def _check_userline(self, password, prefix, suffix):
         if suffix.startswith('$apr1$'):
@@ -164,10 +163,13 @@ class HtPasswdStore(AbstractPasswordFileStore):
         elif suffix.startswith('{SHA}'):
             return (suffix[5:] ==
                     sha.new(password).digest().encode('base64')[:-1])
-        else:
+        elif crypt is None:
             # crypt passwords are only supported on Unix-like systems
-            # a dummy crypt implementation is provided above that throws
-            # a NotImplementedError if the crypt module is unavailable
+            raise NotImplementedError('The "crypt" module is unavailable '
+                                      'on this platform.  Only MD5 '
+                                      'passwords (starting with "$apr1$") '
+                                      'are supported in the htpasswd file.')
+        else:
             return suffix == crypt(password, suffix[:2])
 
     def _get_users(self, filename):
