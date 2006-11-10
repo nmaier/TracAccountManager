@@ -36,8 +36,9 @@ except ImportError:
 try:
     from os import urandom
 except ImportError:
+    from random import randrange
     def urandom(n):
-        return open('/dev/urandom').read(n)
+        return ''.join([chr(randrange(256)) for _ in xrange(n)])
 
 
 class AbstractPasswordFileStore(Component):
