@@ -1,0 +1,61 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:py="http://genshi.edgewall.org/"
+      xmlns:xi="http://www.w3.org/2001/XInclude">
+  <xi:include href="layout.html" />
+  <head>
+    <title>Register</title>
+  </head>
+
+  <body>
+    <div id="content" class="register">
+      <h1>Register an account</h1>
+
+      <div class="system-message" py:if="registration_error">
+        <h2>Error</h2>
+        <p>$registration_error</p>
+      </div>
+
+      <form method="post" action="">
+        <fieldset>
+          <legend>Required</legend>
+          <div>
+            <input type="hidden" name="action" value="create" />
+            <label>Username:
+              <input type="text" name="user" class="textwidget" size="20" />
+            </label>
+          </div>
+          <div>
+            <label>Password:
+              <input type="password" name="password" class="textwidget" size="20" />
+            </label>
+          </div>
+          <div>
+            <label>Confirm Password:
+              <input type="password" name="password_confirm"
+                     class="textwidget" size="20" />
+            </label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Optional</legend>
+          <div>
+            <label>Name:
+              <input type="text" name="name" class="textwidget" size="20" />
+            </label>
+          </div>
+          <div>
+            <label>Email:
+              <input type="text" name="email" class="textwidget" size="20" />
+            </label>
+            <p py:if="reset_password_enabled">Entering your email address will
+            enable you to reset your password if you ever forget it.</p>
+          </div>
+        </fieldset>
+        <input type="submit" value="Create account" />
+      </form>
+    </div>
+  </body>
+</html>

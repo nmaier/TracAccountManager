@@ -80,7 +80,7 @@ def _create_user(req, env, check_permissions=True):
 
 
 class PasswordResetNotification(NotifyEmail):
-    template_name = 'reset_password_email.cs'
+    template_name = 'reset_password_email.txt'
     _username = None
 
     def get_recipients(self, resid):
@@ -98,9 +98,15 @@ class PasswordResetNotification(NotifyEmail):
     def notify(self, username, password):
         # save the username for use in `get_smtp_address`
         self._username = username
-        self.hdf['account.username'] = username
-        self.hdf['account.password'] = password
-        self.hdf['login.link'] = self.env.abs_href.login()
+        self.data.update({
+            'account': {
+                'username': username,
+                'password': password,
+            },
+            'login': {
+                'link': self.env.abs_href.login(),
+            }
+        })
 
         projname = self.config.get('project', 'name')
         subject = '[%s] Trac password reset for user: %s' % (projname, username)
@@ -137,11 +143,11 @@ class AccountModule(Component):
 
     def process_request(self, req):
         if req.path_info == '/account':
-            self._do_account(req)
-            return 'account.cs', None
+            data = {'account': self._do_account(req)}
+            return 'account.html', data, None
         elif req.path_info == '/reset_password':
-            self._do_reset_password(req)
-            return 'reset_password.cs', None
+            data = {'reset': self._do_reset_password(req)}
+            return 'reset_password.html', data, None
 
     def _do_account(self, req):
         if req.authname == 'anonymous':
@@ -149,36 +155,33 @@ class AccountModule(Component):
         action = req.args.get('action')
         if req.method == 'POST':
             if action == 'change_password':
-                self._do_change_password(req)
+                return self._do_change_password(req)
             elif action == 'delete':
-                self._do_delete(req)
+                return self._do_delete(req)
+        return {}
 
     def _do_reset_password(self, req):
         if req.authname != 'anonymous':
-            req.hdf['reset.logged_in'] = True
-            req.hdf['account_href'] = req.href.account()
-            return
-        if req.method == 'POST':
-            username = req.args.get('username')
-            email = req.args.get('email')
-            if not username:
-                req.hdf['reset.error'] = 'Username is required'
-                return
-            if not email:
-                req.hdf['reset.error'] = 'Email is required'
-                return
+            return {'logged_in': True}
+        if req.method != 'POST':
+            return {}
+        username = req.args.get('username')
+        email = req.args.get('email')
+        if not username:
+            return {'error': 'Username is required'}
+        if not email:
+            return {'error': 'Email is required'}
 
-            notifier = PasswordResetNotification(self.env)
+        notifier = PasswordResetNotification(self.env)
 
-            if email != notifier.email_map.get(username):
-                req.hdf['reset.error'] = 'The email and username do not ' \
-                                         'match a known account.'
-                return
+        if email != notifier.email_map.get(username):
+            return {'error': 'The email and username do not '
+                             'match a known account.'}
 
-            new_password = self._random_password()
-            notifier.notify(username, new_password)
-            AccountManager(self.env).set_password(username, new_password)
-            req.hdf['reset.sent_to_email'] = email
+        new_password = self._random_password()
+        notifier.notify(username, new_password)
+        AccountManager(self.env).set_password(username, new_password)
+        return {'sent_to_email': email}
 
     def _random_password(self):
         return ''.join([random.choice(self._password_chars)
@@ -188,15 +191,13 @@ class AccountModule(Component):
         user = req.authname
         password = req.args.get('password')
         if not password:
-            req.hdf['account.error'] = 'Password cannot be empty.'
-            return
+            return {'error': 'Password cannot be empty.'}
 
         if password != req.args.get('password_confirm'):
-            req.hdf['account.error'] = 'The passwords must match.'
-            return
+            return {'error': 'The passwords must match.'}
 
         AccountManager(self.env).set_password(user, password)
-        req.hdf['account.message'] = 'Password successfully updated.'
+        return {'message': 'Password successfully updated.'}
 
     def _do_delete(self, req):
         user = req.authname
@@ -245,18 +246,19 @@ class RegistrationModule(Component):
         if req.authname != 'anonymous':
             req.redirect(self.env.href.account())
         action = req.args.get('action')
+        data = {}
         if req.method == 'POST' and action == 'create':
             try:
                 _create_user(req, self.env)
             except TracError, e:
-                req.hdf['registration.error'] = e.message
+                data['registration_error'] = e.message
             else:
                 req.redirect(self.env.href.login())
-        req.hdf['reset_password_enabled'] = \
+        data['reset_password_enabled'] = \
             (self.env.is_component_enabled(AccountModule)
              and NotificationSystem(self.env).smtp_enabled)
 
-        return 'register.cs', None
+        return 'register.html', data, None
 
 
     # ITemplateProvider
@@ -297,13 +299,15 @@ class LoginModule(auth.LoginModule):
 
     def process_request(self, req):
         if req.path_info.startswith('/login') and req.authname == 'anonymous':
-            req.hdf['referer'] = self._referer(req)
-            if self.env.is_component_enabled(AccountModule) \
-               and NotificationSystem(self.env).smtp_enabled:
-                req.hdf['trac.href.reset_password'] = req.href.reset_password()
+            data = {
+                'referer': self._referer(req),
+                'reset_password_enabled':
+                    (self.env.is_component_enabled(AccountModule)
+                     and NotificationSystem(self.env).smtp_enabled)
+            }
             if req.method == 'POST':
-                req.hdf['login.error'] = 'Invalid username or password'
-            return 'login.cs', None
+                data['login_error'] = 'Invalid username or password'
+            return 'login.html', data, None
         return auth.LoginModule.process_request(self, req)
 
     def _do_login(self, req):

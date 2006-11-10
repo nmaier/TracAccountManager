@@ -1,0 +1,48 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:py="http://genshi.edgewall.org/"
+      xmlns:xi="http://www.w3.org/2001/XInclude">
+  <xi:include href="layout.html" />
+  <head>
+    <title>My Account</title>
+  </head>
+
+  <body>
+    <div id="content" class="register">
+      <h1>My Account</h1>
+
+      <p>Manage your user account.</p>
+
+      <div class="system-message" py:if="account_error">
+        <h2>Error</h2>
+        <p>$account.error</p>
+      </div>
+
+      <p py:if="account.message">$account.message</p>
+
+      <form method="post" action="">
+        <div>
+          <input type="hidden" name="action" value="change_password" />
+          <label for="password">New Password:</label>
+          <input type="password" id="password" name="password" class="textwidget"
+                 size="20" />
+        </div>
+        <div>
+          <label for="password_confirm">Confirm Password:</label>
+          <input type="password" id="password_confirm" name="password_confirm"
+                 class="textwidget" size="20" />
+        </div>
+        <input type="submit" value="Change password" />
+      </form>
+
+      <form method="post" action=""
+            onsubmit="return confirm('Are you sure you want to delete your account?');">
+        <input type="hidden" name="action" value="delete" />
+        <input type="submit" value="Delete account" />
+      </form>
+
+    </div>
+  </body>
+</html>
