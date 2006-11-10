@@ -1,0 +1,63 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xi="http://www.w3.org/2001/XInclude"
+      xmlns:py="http://genshi.edgewall.org/">
+  <xi:include href="admin.html" />
+  <head>
+    <title>Basics</title>
+  </head>
+
+  <body>
+    <h2>Manage User Accounts</h2>
+
+    <form id="addaccount" class="addnew" method="post">
+      <fieldset>
+        <div class="system-message"
+             py:if="registration_error"><p>${registration_error}</p></div>
+
+        <legend>Add Account:</legend>
+        <div class="field">
+          <label>Username: <input type="text" name="user" class="textwidget" /></label>
+        </div>
+        <div class="field">
+          <label>Password: <input type="password" name="password" class="textwidget" /></label>
+        </div>
+        <div class="field">
+          <label>Confirm password: <input type="password" name="password_confirm" class="textwidget" /></label>
+        </div>
+        <div class="field">
+          <label>Name: <input type="text" name="name" class="textwidget" /></label>
+        </div>
+        <div class="field">
+          <label>Email: <input type="text" name="email" class="textwidget" /></label>
+        </div>
+        <p class="help">Add a new user account.</p>
+        <div class="buttons">
+          <input type="submit" name="add" value=" Add " />
+        </div>
+      </fieldset>
+    </form>
+
+    <form method="post">
+      <table class="listing" id="accountlist">
+        <thead>
+          <tr><th class="sel">&nbsp;</th><th>Account</th><th>Name</th><th>Email</th><th>Last Login</th></tr>
+        </thead>
+        <tbody>
+          <tr py:for="account in accounts">
+            <td><input type="checkbox" name="sel" value="${account.username}" /></td>
+            <td>${account.username}</td>
+            <td>${account.name}</td>
+            <td>${account.email}</td>
+            <td>${account.last_visit}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="buttons">
+        <input type="submit" name="remove" value="Remove selected accounts" />
+      </div>
+    </form>
+  </body>
+</html>

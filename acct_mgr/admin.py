@@ -13,31 +13,32 @@ from trac.core import *
 from trac.perm import PermissionSystem
 from trac.util import sorted
 from trac.util.datefmt import format_datetime
-from webadmin.web_ui import IAdminPageProvider
+from trac.admin import IAdminPanelProvider
 
 from acct_mgr.api import AccountManager
 from acct_mgr.web_ui import _create_user
 
 class AccountManagerAdminPage(Component):
 
-    implements(IAdminPageProvider)
+    implements(IAdminPanelProvider)
 
     def __init__(self):
         self.account_manager = AccountManager(self.env)
 
     # IAdminPageProvider
-    def get_admin_pages(self, req):
+    def get_admin_panels(self, req):
         if req.perm.has_permission('TRAC_ADMIN'):
             yield ('general', 'General', 'accounts', 'Accounts')
 
-    def process_admin_request(self, req, cat, page, path_info):
+    def render_admin_panel(self, req, cat, page, path_info):
         perm = PermissionSystem(self.env)
+        data = {}
         if req.method == 'POST':
             if req.args.get('add'):
                 try:
                     _create_user(req, self.env, check_permissions=False)
                 except TracError, e:
-                    req.hdf['registration.error'] = e.message
+                    data['registration_error'] = e.message
             elif req.args.get('remove'):
                 sel = req.args.get('sel')
                 sel = isinstance(sel, list) and sel or [sel]
@@ -62,8 +63,8 @@ class AccountManagerAdminPage(Component):
             if account and last_visit:
                 account['last_visit'] = format_datetime(last_visit)
 
-        req.hdf['accounts'] = sorted(accounts.itervalues(),
-                                     key=lambda acct: acct['username'])
+        data['accounts'] = sorted(accounts.itervalues(),
+                                  key=lambda acct: acct['username'])
 
-        return 'admin_accounts.cs', None
+        return 'admin_accounts.html', data
 

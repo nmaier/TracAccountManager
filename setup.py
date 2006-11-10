@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name = 'TracAccountManager',
-    version = '0.1.2',
+    version = '0.2',
     author = 'Matthew Good',
     author_email = 'trac@matt-good.net',
     url = 'http://trac-hacks.org/wiki/AccountManagerPlugin',
@@ -21,7 +21,7 @@ this stuff is worth it, you can buy me a beer in return.   Matthew Good''',
     package_data={'acct_mgr': ['templates/*.cs']},
 
     install_requires = [
-        'TracWebAdmin',
+        #'trac>=0.11',
     ],
 
     entry_points = {
