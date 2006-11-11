@@ -1,0 +1,37 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xi="http://www.w3.org/2001/XInclude"
+      xmlns:py="http://genshi.edgewall.org/">
+  <xi:include href="admin.html" />
+  <head>
+    <title>Accounts: Configuration</title>
+  </head>
+
+  <body>
+    <h2>Accounts: Configuration</h2>
+
+    <form id="accountsconfig" class="mod" method="post">
+      <fieldset py:for="section in sections">
+        <legend>
+          <label>
+            <input type="radio" name="selected" value="$section.classname"
+                   checked="${section.selected and 'checked' or None}" />
+            $section.name
+          </label>
+        </legend>
+
+        <div class="field" py:for="option in section.options">
+          <label>$option.label:
+            <input type="text" name="$option.name" value="$option.value"
+                   class="textwidget" />
+          </label>
+        </div>
+      </fieldset>
+      <div class="buttons">
+        <input type="submit" name="save" value="Save" />
+      </div>
+    </form>
+  </body>
+</html>
