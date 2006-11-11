@@ -243,14 +243,21 @@ class RegistrationModule(Component):
     implements(INavigationContributor, IRequestHandler, ITemplateProvider)
 
     def __init__(self):
-        self._write_check(log=True)
+        self._enable_check(log=True)
 
-    def _write_check(self, log=False):
+    def _enable_check(self, log=False):
         writable = AccountManager(self.env).supports('set_password')
-        if not writable and log:
-            self.log.warn('RegistrationModule is disabled because the password '
-                          'store does not support writing.')
-        return writable
+        ignore_case = auth.LoginModule(self.env).ignore_case
+        if log:
+            if not writable:
+                self.log.warn('RegistrationModule is disabled because the '
+                              'password store does not support writing.')
+            if ignore_case:
+                self.log.warn('RegistrationModule is disabled because '
+                              'ignore_auth_case is enabled in trac.ini.  '
+                              'This setting needs disabled to support '
+                              'registration.')
+        return writable and not ignore_case
 
     #INavigationContributor methods
 
@@ -258,7 +265,7 @@ class RegistrationModule(Component):
         return 'register'
 
     def get_navigation_items(self, req):
-        if not self._write_check():
+        if not self._enable_check():
             return
         if req.authname == 'anonymous':
             yield 'metanav', 'register', Markup('<a href="%s">Register</a>',
@@ -267,7 +274,7 @@ class RegistrationModule(Component):
     # IRequestHandler methods
 
     def match_request(self, req):
-        return req.path_info == '/register' and self._write_check(log=True)
+        return req.path_info == '/register' and self._enable_check(log=True)
 
     def process_request(self, req):
         if req.authname != 'anonymous':
