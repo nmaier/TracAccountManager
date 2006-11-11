@@ -37,7 +37,7 @@
         <input type="submit" value="Change password" />
       </form>
 
-      <form method="post" action=""
+      <form method="post" action="" py:if="account.delete_enabled"
             onsubmit="return confirm('Are you sure you want to delete your account?');">
         <input type="hidden" name="action" value="delete" />
         <input type="submit" value="Delete account" />

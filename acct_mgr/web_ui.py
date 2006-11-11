@@ -128,18 +128,31 @@ class AccountModule(Component):
                                 'created when resetting the password for an '
                                 'account.')
 
+    def __init__(self):
+        self._write_check(log=True)
+
+    def _write_check(self, log=False):
+        writable = AccountManager(self.env).supports('set_password')
+        if not writable and log:
+            self.log.warn('AccountModule is disabled because the password '
+                          'store does not support writing.')
+        return writable
+
     #INavigationContributor methods
     def get_active_navigation_item(self, req):
         return 'account'
 
     def get_navigation_items(self, req):
+        if not self._write_check():
+            return
         if req.authname != 'anonymous':
             yield 'metanav', 'account', Markup('<a href="%s">My Account</a>',
                                                (req.href.account()))
 
     # IRequestHandler methods
     def match_request(self, req):
-        return req.path_info in ('/account', '/reset_password')
+        return (req.path_info in ('/account', '/reset_password')
+                and self._write_check(log=True))
 
     def process_request(self, req):
         if req.path_info == '/account':
@@ -153,12 +166,14 @@ class AccountModule(Component):
         if req.authname == 'anonymous':
             req.redirect(self.env.href.wiki())
         action = req.args.get('action')
+        delete_enabled = AccountManager(self.env).supports('delete_user')
+        data = {'delete_enabled': delete_enabled}
         if req.method == 'POST':
             if action == 'change_password':
-                return self._do_change_password(req)
+                data.update(self._do_change_password(req))
             elif action == 'delete':
-                return self._do_delete(req)
-        return {}
+                data.update(self._do_delete(req))
+        return data
 
     def _do_reset_password(self, req):
         if req.authname != 'anonymous':
@@ -227,12 +242,24 @@ class RegistrationModule(Component):
 
     implements(INavigationContributor, IRequestHandler, ITemplateProvider)
 
+    def __init__(self):
+        self._write_check(log=True)
+
+    def _write_check(self, log=False):
+        writable = AccountManager(self.env).supports('set_password')
+        if not writable and log:
+            self.log.warn('RegistrationModule is disabled because the password '
+                          'store does not support writing.')
+        return writable
+
     #INavigationContributor methods
 
     def get_active_navigation_item(self, req):
         return 'register'
 
     def get_navigation_items(self, req):
+        if not self._write_check():
+            return
         if req.authname == 'anonymous':
             yield 'metanav', 'register', Markup('<a href="%s">Register</a>',
                                                 (self.env.href.register()))
@@ -240,7 +267,7 @@ class RegistrationModule(Component):
     # IRequestHandler methods
 
     def match_request(self, req):
-        return req.path_info == '/register'
+        return req.path_info == '/register' and self._write_check(log=True)
 
     def process_request(self, req):
         if req.authname != 'anonymous':

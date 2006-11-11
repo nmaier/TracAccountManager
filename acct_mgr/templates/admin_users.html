@@ -12,7 +12,7 @@
   <body>
     <h2>Manage User Accounts</h2>
 
-    <form id="addaccount" class="addnew" method="post">
+    <form id="addaccount" class="addnew" method="post" py:if="create_enabled">
       <fieldset>
         <div class="system-message"
              py:if="registration_error"><p>${registration_error}</p></div>
@@ -40,14 +40,26 @@
       </fieldset>
     </form>
 
-    <form method="post">
+    <py:choose>
+    <div class="system-message"
+         py:when="not listing_enabled">
+      <p>This password store does not support listing users</p>
+    </div>
+    <form method="post" py:otherwise="" py:strip="not delete_enabled">
+      <div class="system-message"
+           py:if="deletion_error"><p>${deletion_error}</p></div>
       <table class="listing" id="accountlist">
         <thead>
-          <tr><th class="sel">&nbsp;</th><th>Account</th><th>Name</th><th>Email</th><th>Last Login</th></tr>
+          <tr>
+            <th class="sel" py:if="delete_enabled">&nbsp;</th>
+            <th>Account</th><th>Name</th><th>Email</th><th>Last Login</th>
+          </tr>
         </thead>
         <tbody>
           <tr py:for="account in accounts">
-            <td><input type="checkbox" name="sel" value="${account.username}" /></td>
+            <td py:if="delete_enabled">
+              <input type="checkbox" name="sel" value="${account.username}" />
+            </td>
             <td>${account.username}</td>
             <td>${account.name}</td>
             <td>${account.email}</td>
@@ -55,9 +67,10 @@
           </tr>
         </tbody>
       </table>
-      <div class="buttons">
+      <div class="buttons" py:if="delete_enabled">
         <input type="submit" name="remove" value="Remove selected accounts" />
       </div>
     </form>
+    </py:choose>
   </body>
 </html>

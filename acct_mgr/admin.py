@@ -78,38 +78,57 @@ class AccountManagerAdminPage(Component):
 
     def _do_users(self, req):
         perm = PermissionSystem(self.env)
-        data = {}
+        listing_enabled = self.account_manager.supports('get_users')
+        create_enabled = self.account_manager.supports('set_password')
+        delete_enabled = self.account_manager.supports('delete_user')
+
+        data = {
+            'listing_enabled': listing_enabled,
+            'create_enabled': create_enabled,
+            'delete_enabled': delete_enabled,
+        }
+
         if req.method == 'POST':
             if req.args.get('add'):
-                try:
-                    _create_user(req, self.env, check_permissions=False)
-                except TracError, e:
-                    data['registration_error'] = e.message
+                if create_enabled:
+                    try:
+                        _create_user(req, self.env, check_permissions=False)
+                    except TracError, e:
+                        data['registration_error'] = e.message
+                else:
+                    data['registration_error'] = 'The password store does ' \
+                                                 'not support creating users'
             elif req.args.get('remove'):
-                sel = req.args.get('sel')
-                sel = isinstance(sel, list) and sel or [sel]
-                for account in sel:
-                    self.account_manager.delete_user(account)
+                if delete_enabled:
+                    sel = req.args.get('sel')
+                    sel = isinstance(sel, list) and sel or [sel]
+                    for account in sel:
+                        self.account_manager.delete_user(account)
+                else:
+                    data['deletion_error'] = 'The password store does not ' \
+                                             'support deleting users'
 
-        accounts = {}
-        for username in self.account_manager.get_users():
-            accounts[username] = {'username': username}
+        if listing_enabled:
+            accounts = {}
+            for username in self.account_manager.get_users():
+                accounts[username] = {'username': username}
 
-        for username, name, email in self.env.get_known_users():
-            account = accounts.get(username)
-            if account:
-                account['name'] = name
-                account['email'] = email
+            for username, name, email in self.env.get_known_users():
+                account = accounts.get(username)
+                if account:
+                    account['name'] = name
+                    account['email'] = email
 
-        db = self.env.get_db_cnx()
-        cursor = db.cursor()
-        cursor.execute("SELECT sid,last_visit FROM session WHERE authenticated=1")
-        for username, last_visit in cursor:
-            account = accounts.get(username)
-            if account and last_visit:
-                account['last_visit'] = format_datetime(last_visit)
+            db = self.env.get_db_cnx()
+            cursor = db.cursor()
+            cursor.execute("SELECT sid,last_visit FROM session WHERE "
+                           "authenticated=1")
+            for username, last_visit in cursor:
+                account = accounts.get(username)
+                if account and last_visit:
+                    account['last_visit'] = format_datetime(last_visit)
 
-        data['accounts'] = sorted(accounts.itervalues(),
-                                  key=lambda acct: acct['username'])
+            data['accounts'] = sorted(accounts.itervalues(),
+                                      key=lambda acct: acct['username'])
 
         return 'admin_users.html', data
