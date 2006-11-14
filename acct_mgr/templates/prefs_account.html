@@ -1,0 +1,47 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:py="http://genshi.edgewall.org/"
+      xmlns:xi="http://www.w3.org/2001/XInclude">
+  <xi:include href="prefs.html" />
+
+  <!--! FIXME [1] prevents this from matching its own output.
+        Should that really be necessary? -->
+  <div py:match="div[@id='tabcontent'][1]" py:attrs="select('@*')">
+    ${select('*')}
+    <form method="post" action="" py:if="account.delete_enabled"
+          onsubmit="return confirm('Are you sure you want to delete your account?');">
+      <div class="buttons">
+        <input type="hidden" name="action" value="delete" />
+        <input type="submit" value="Delete account" />
+      </div>
+    </form>
+  </div>
+ 
+  <head>
+    <title>Account</title>
+  </head>
+
+  <body>
+    <div class="system-message" py:if="account.error">
+      <h2>Error</h2>
+      <p>$account.error</p>
+    </div>
+
+    <p py:if="account.message">$account.message</p>
+
+    <div class="field">
+      <label>New Password:
+        <input type="password" name="password" class="textwidget"
+               size="20" />
+      </label>
+    </div>
+    <div class="field">
+      <label>Confirm Password:
+        <input type="password" name="password_confirm" class="textwidget"
+               size="20" />
+      </label>
+    </div>
+  </body>
+</html>

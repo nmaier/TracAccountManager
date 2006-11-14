@@ -18,6 +18,7 @@ from trac import perm, util
 from trac.core import *
 from trac.config import IntOption
 from trac.notification import NotificationSystem, NotifyEmail
+from trac.prefs import IPreferencePanelProvider
 from trac.web import auth
 from trac.web.api import IAuthenticator
 from trac.web.main import IRequestHandler
@@ -120,7 +121,7 @@ class AccountModule(Component):
     module must be set in trac.ini in order to use this.
     """
 
-    implements(INavigationContributor, IRequestHandler, ITemplateProvider)
+    implements(IPreferencePanelProvider, IRequestHandler, ITemplateProvider)
 
     _password_chars = string.ascii_letters + string.digits
     password_length = IntOption('account-manager', 'generated_password_length', 8,
@@ -138,45 +139,44 @@ class AccountModule(Component):
                           'store does not support writing.')
         return writable
 
-    #INavigationContributor methods
-    def get_active_navigation_item(self, req):
-        return 'account'
-
-    def get_navigation_items(self, req):
+    #IPreferencePanelProvider methods
+    def get_preference_panels(self, req):
         if not self._write_check():
             return
-        if req.authname != 'anonymous':
-            yield 'metanav', 'account', Markup('<a href="%s">My Account</a>',
-                                               (req.href.account()))
+        if req.authname and req.authname != 'anonymous':
+            yield 'account', 'Account'
+
+    def render_preference_panel(self, req, panel):
+        data = {'account': self._do_account(req)}
+        print data
+        return 'prefs_account.html', data
 
     # IRequestHandler methods
     def match_request(self, req):
-        return (req.path_info in ('/account', '/reset_password')
+        return (req.path_info == '/reset_password'
                 and self._write_check(log=True))
 
     def process_request(self, req):
-        if req.path_info == '/account':
-            data = {'account': self._do_account(req)}
-            return 'account.html', data, None
-        elif req.path_info == '/reset_password':
-            data = {'reset': self._do_reset_password(req)}
-            return 'reset_password.html', data, None
+        data = {'reset': self._do_reset_password(req)}
+        return 'reset_password.html', data, None
 
     def _do_account(self, req):
-        if req.authname == 'anonymous':
+        if not req.authname or req.authname == 'anonymous':
             req.redirect(self.env.href.wiki())
         action = req.args.get('action')
         delete_enabled = AccountManager(self.env).supports('delete_user')
         data = {'delete_enabled': delete_enabled}
         if req.method == 'POST':
-            if action == 'change_password':
+            if action == 'save':
                 data.update(self._do_change_password(req))
-            elif action == 'delete':
+            elif action == 'delete' and delete_enabled:
                 data.update(self._do_delete(req))
+            else:
+                data.update({'error': 'Invalid action'})
         return data
 
     def _do_reset_password(self, req):
-        if req.authname != 'anonymous':
+        if req.authname and req.authname != 'anonymous':
             return {'logged_in': True}
         if req.method != 'POST':
             return {}
@@ -278,7 +278,7 @@ class RegistrationModule(Component):
 
     def process_request(self, req):
         if req.authname != 'anonymous':
-            req.redirect(self.env.href.account())
+            req.redirect(self.env.href.prefs('account'))
         action = req.args.get('action')
         data = {}
         if req.method == 'POST' and action == 'create':
