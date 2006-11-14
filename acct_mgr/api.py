@@ -108,7 +108,12 @@ class AccountManager(Component):
             self._notify('deleted', user)
 
     def supports(self, operation):
-        return hasattr(self.password_store, operation)
+        try:
+            store = self.password_store
+        except AttributeError:
+            return False
+        else:
+            return hasattr(store, operation)
 
     def password_store(self):
         try:
