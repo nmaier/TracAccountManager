@@ -117,7 +117,7 @@ class AccountManager(Component):
             # fall back on old "password_format" option
             fmt = self._password_format
             for store in self.stores:
-                config_key = getattr(store, 'config_key')
+                config_key = getattr(store, 'config_key', None)
                 if config_key is None:
                     continue
                 if config_key() == fmt:
