@@ -48,7 +48,11 @@ class AbstractPasswordFileStore(Component):
     See the concrete sub-classes for usage information.
     """
 
-    filename = Option('account-manager', 'password_file')
+    _filename = Option('account-manager', 'password_file')
+
+    def filename(self):
+        return os.path.normpath(os.path.join(self.env.path, self._filename))
+    filename = property(filename)
 
     def has_user(self, user):
         return user in self.get_users()
