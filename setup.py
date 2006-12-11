@@ -18,7 +18,8 @@ this stuff is worth it, you can buy me a beer in return.   Matthew Good''',
 
     zip_safe=True,
     packages=['acct_mgr'],
-    package_data={'acct_mgr': ['templates/*.cs']},
+    package_data={'acct_mgr': ['templates/*.html',
+                               'templates/*.txt']},
 
     install_requires = [
         #'trac>=0.11',
