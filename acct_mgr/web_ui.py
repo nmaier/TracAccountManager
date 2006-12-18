@@ -204,19 +204,35 @@ class AccountModule(Component):
 
     def _do_change_password(self, req):
         user = req.authname
+        mgr = AccountManager(self.env)
+
+        old_password = req.args.get('old_password')
+        if not old_password:
+            return {'save_error': 'Old Password cannot be empty.'}
+        if not mgr.check_password(user, old_password):
+            return {'save_error': 'Old Password is incorrect.'}
+
         password = req.args.get('password')
         if not password:
-            return {'error': 'Password cannot be empty.'}
+            return {'save_error': 'Password cannot be empty.'}
 
         if password != req.args.get('password_confirm'):
-            return {'error': 'The passwords must match.'}
+            return {'save_error': 'The passwords must match.'}
 
-        AccountManager(self.env).set_password(user, password)
+        mgr.set_password(user, password)
         return {'message': 'Password successfully updated.'}
 
     def _do_delete(self, req):
         user = req.authname
-        AccountManager(self.env).delete_user(user)
+        mgr = AccountManager(self.env)
+
+        password = req.args.get('password')
+        if not password:
+            return {'delete_error': 'Password cannot be empty.'}
+        if not mgr.check_password(user, password):
+            return {'delete_error': 'Password is incorrect.'}
+
+        mgr.delete_user(user)
         req.redirect(self.env.href.logout())
 
     # ITemplateProvider

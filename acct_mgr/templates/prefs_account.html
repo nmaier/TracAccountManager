@@ -10,13 +10,29 @@
         Should that really be necessary? -->
   <div py:match="div[@id='tabcontent'][1]" py:attrs="select('@*')">
     ${select('*')}
-    <form method="post" action="" py:if="account.delete_enabled"
+    <py:if test="account.delete_enabled">
+    <hr/>
+    <h2>Delete Account</h2>
+
+    <div class="system-message" py:if="account.delete_error">
+      <h2>Error</h2>
+      <p>$account.delete_error</p>
+    </div>
+
+    <form method="post" action=""
           onsubmit="return confirm('Are you sure you want to delete your account?');">
+      <div class="field">
+        <label>Password:
+          <input type="password" name="password" class="textwidget"
+                 size="20" />
+        </label>
+      </div>
       <div class="buttons">
         <input type="hidden" name="action" value="delete" />
         <input type="submit" value="Delete account" />
       </div>
     </form>
+    </py:if>
   </div>
  
   <head>
@@ -30,7 +46,19 @@
     </div>
 
     <p py:if="account.message">$account.message</p>
+    <h2>Change Password</h2>
 
+    <div class="system-message" py:if="account.save_error">
+      <h2>Error</h2>
+      <p>$account.save_error</p>
+    </div>
+
+    <div class="field">
+      <label>Old Password:
+        <input type="password" name="old_password" class="textwidget"
+               size="20" />
+      </label>
+    </div>
     <div class="field">
       <label>New Password:
         <input type="password" name="password" class="textwidget"
