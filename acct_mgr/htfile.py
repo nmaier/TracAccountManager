@@ -175,7 +175,7 @@ class HtPasswdStore(AbstractPasswordFileStore):
                                       'passwords (starting with "$apr1$") '
                                       'are supported in the htpasswd file.')
         else:
-            return suffix == crypt(password, suffix[:2])
+            return suffix == crypt(password, suffix)
 
     def _get_users(self, filename):
         f = open(filename)
