@@ -162,7 +162,7 @@ class AccountModule(Component):
 
     def _do_account(self, req):
         if not req.authname or req.authname == 'anonymous':
-            req.redirect(self.env.href.wiki())
+            req.redirect(req.href.wiki())
         action = req.args.get('action')
         delete_enabled = AccountManager(self.env).supports('delete_user')
         data = {'delete_enabled': delete_enabled}
@@ -233,7 +233,7 @@ class AccountModule(Component):
             return {'delete_error': 'Password is incorrect.'}
 
         mgr.delete_user(user)
-        req.redirect(self.env.href.logout())
+        req.redirect(req.href.logout())
 
     # ITemplateProvider
     
@@ -285,7 +285,7 @@ class RegistrationModule(Component):
             return
         if req.authname == 'anonymous':
             yield 'metanav', 'register', Markup('<a href="%s">Register</a>',
-                                                (self.env.href.register()))
+                                                (req.href.register()))
 
     # IRequestHandler methods
 
@@ -294,7 +294,7 @@ class RegistrationModule(Component):
 
     def process_request(self, req):
         if req.authname != 'anonymous':
-            req.redirect(self.env.href.prefs('account'))
+            req.redirect(req.href.prefs('account'))
         action = req.args.get('action')
         data = {}
         if req.method == 'POST' and action == 'create':
@@ -303,7 +303,7 @@ class RegistrationModule(Component):
             except TracError, e:
                 data['registration_error'] = e.message
             else:
-                req.redirect(self.env.href.login())
+                req.redirect(req.href.login())
         data['reset_password_enabled'] = \
             (self.env.is_component_enabled(AccountModule)
              and NotificationSystem(self.env).smtp_enabled)
