@@ -16,6 +16,7 @@ from trac.config import Option
 from trac.perm import PermissionSystem
 from trac.util import sorted
 from trac.util.datefmt import format_datetime
+from trac.web.chrome import ITemplateProvider
 from trac.admin import IAdminPanelProvider
 
 from acct_mgr.api import AccountManager
@@ -132,3 +133,18 @@ class AccountManagerAdminPage(Component):
                                       key=lambda acct: acct['username'])
 
         return 'admin_users.html', data
+
+    # ITemplateProvider
+     
+    def get_htdocs_dirs(self):
+        """Return the absolute path of a directory containing additional
+        static resources (such as images, style sheets, etc).
+        """
+        return []
+ 
+    def get_templates_dirs(self):
+        """Return the absolute path of the directory containing the provided
+        ClearSilver templates.
+        """
+        from pkg_resources import resource_filename
+        return [resource_filename(__name__, 'templates')]
