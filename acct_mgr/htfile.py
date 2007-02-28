@@ -9,8 +9,6 @@
 #
 # Author: Matthew Good <trac@matt-good.net>
 
-from __future__ import generators
-
 from binascii import hexlify
 import errno
 import md5, sha

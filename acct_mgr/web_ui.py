@@ -9,8 +9,6 @@
 #
 # Author: Matthew Good <trac@matt-good.net>
 
-from __future__ import generators
-
 import random
 import string
 
