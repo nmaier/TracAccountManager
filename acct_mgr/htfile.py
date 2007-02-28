@@ -41,6 +41,15 @@ except ImportError:
         return ''.join([chr(randrange(256)) for _ in xrange(n)])
 
 
+class _RelativePathOption(Option):
+ 
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        path = super(_RelativePathOption, self).__get__(instance, owner)
+        return os.path.normpath(os.path.join(instance.env.path, path))
+
+
 class AbstractPasswordFileStore(Component):
     """Base class for managing password files such as Apache's htpasswd and
     htdigest formats.
@@ -48,11 +57,7 @@ class AbstractPasswordFileStore(Component):
     See the concrete sub-classes for usage information.
     """
 
-    _filename = Option('account-manager', 'password_file')
-
-    def filename(self):
-        return os.path.normpath(os.path.join(self.env.path, self._filename))
-    filename = property(filename)
+    filename = _RelativePathOption('account-manager', 'password_file')
 
     def has_user(self, user):
         return user in self.get_users()
