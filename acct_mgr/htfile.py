@@ -20,6 +20,7 @@ from trac.core import *
 from trac.config import Option
 
 from api import IPasswordStore
+from util import EnvRelativePathOption
 
 # check for the availability of the "crypt" module for checking passwords on
 # Unix-like platforms
@@ -39,15 +40,6 @@ except ImportError:
         return ''.join([chr(randrange(256)) for _ in xrange(n)])
 
 
-class _RelativePathOption(Option):
- 
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        path = super(_RelativePathOption, self).__get__(instance, owner)
-        return os.path.normpath(os.path.join(instance.env.path, path))
-
-
 class AbstractPasswordFileStore(Component):
     """Base class for managing password files such as Apache's htpasswd and
     htdigest formats.
@@ -55,7 +47,7 @@ class AbstractPasswordFileStore(Component):
     See the concrete sub-classes for usage information.
     """
 
-    filename = _RelativePathOption('account-manager', 'password_file')
+    filename = EnvRelativePathOption('account-manager', 'password_file')
 
     def has_user(self, user):
         return user in self.get_users()
