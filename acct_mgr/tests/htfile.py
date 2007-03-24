@@ -59,14 +59,6 @@ class HtPasswdTestCase(_BaseTestCase):
         _BaseTestCase.setUp(self)
         self.env.config.set('account-manager', 'password_store',
                             'HtPasswdStore')
-        import acct_mgr.htfile
-        # dummy salt implementation so hashes are reproducible
-        acct_mgr.htfile.salt = lambda: 'SALT...'
-
-    def test_userline(self):
-        store = HtPasswdStore(self.env)
-        self.assertEqual(store.userline('user', 'password'),
-                         'user:$apr1$SALT...$8NnXxBFveBqbF9CN0F6SH/')
 
     def test_md5(self):
         self._do_password_test('test_md5',
