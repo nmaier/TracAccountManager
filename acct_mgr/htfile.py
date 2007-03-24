@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 #
-# Copyright (C) 2005 Matthew Good <trac@matt-good.net>
+# Copyright (C) 2005,2006,2007 Matthew Good <trac@matt-good.net>
 #
 # "THE BEER-WARE LICENSE" (Revision 42):
 # <trac@matt-good.net> wrote this file.  As long as you retain this notice you
@@ -9,35 +9,16 @@
 #
 # Author: Matthew Good <trac@matt-good.net>
 
-from binascii import hexlify
 import errno
-import md5, sha
 import os.path
 import fileinput
-from md5crypt import md5crypt
 
 from trac.core import *
 from trac.config import Option
 
 from api import IPasswordStore
+from pwhash import htpasswd, htdigest
 from util import EnvRelativePathOption
-
-# check for the availability of the "crypt" module for checking passwords on
-# Unix-like platforms
-# MD5 is still used when adding/updating passwords
-try:
-    from crypt import crypt
-except ImportError:
-    crypt = None
-
-# os.urandom was added in Python 2.4
-# try to fall back on reading from /dev/urandom on older Python versions
-try:
-    from os import urandom
-except ImportError:
-    from random import randrange
-    def urandom(n):
-        return ''.join([chr(randrange(256)) for _ in xrange(n)])
 
 
 class AbstractPasswordFileStore(Component):
@@ -121,15 +102,6 @@ class AbstractPasswordFileStore(Component):
         return matched
 
 
-def salt():
-    s = ''
-    v = long(hexlify(urandom(4)), 16)
-    itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-    for i in range(8):
-        s += itoa64[v & 0x3f]; v >>= 6
-    return s
-
-
 class HtPasswdStore(AbstractPasswordFileStore):
     """Manages user accounts stored in Apache's htpasswd format.
 
@@ -151,26 +123,10 @@ class HtPasswdStore(AbstractPasswordFileStore):
         return user + ':'
 
     def userline(self, user, password):
-        if crypt is None:
-            return self.prefix(user) + md5crypt(password, salt(), '$apr1$')
-        else:
-            return self.prefix(user) + crypt(password, salt())
+        return self.prefix(user) + htpasswd(password)
 
     def _check_userline(self, password, prefix, suffix):
-        if suffix.startswith('$apr1$'):
-            return suffix == md5crypt(password, suffix[6:].split('$')[0],
-                                      '$apr1$')
-        elif suffix.startswith('{SHA}'):
-            return (suffix[5:] ==
-                    sha.new(password).digest().encode('base64')[:-1])
-        elif crypt is None:
-            # crypt passwords are only supported on Unix-like systems
-            raise NotImplementedError('The "crypt" module is unavailable '
-                                      'on this platform.  Only MD5 '
-                                      'passwords (starting with "$apr1$") '
-                                      'are supported in the htpasswd file.')
-        else:
-            return suffix == crypt(password, suffix)
+        return suffix == htpasswd(password, suffix)
 
     def _get_users(self, filename):
         f = open(filename)
@@ -205,11 +161,10 @@ class HtDigestStore(AbstractPasswordFileStore):
         return '%s:%s:' % (user, self.realm)
 
     def userline(self, user, password):
-        p = self.prefix(user)
-        return p + md5.new(p + password).hexdigest()
+        return self.prefix(user) + htdigest(user, self.realm, password)
 
     def _check_userline(self, password, prefix, suffix):
-        return suffix == md5.new(prefix + password).hexdigest()
+        return suffix == htdigest(user, self.realm, password)
 
     def _get_users(self, filename):
         _realm = self.realm

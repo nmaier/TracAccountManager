@@ -29,8 +29,10 @@ this stuff is worth it, you can buy me a beer in return.   Matthew Good''',
         'trac.plugins': [
             'acct_mgr.admin = acct_mgr.admin',
             'acct_mgr.api = acct_mgr.api',
+            'acct_mgr.db = acct_mgr.db',
             'acct_mgr.htfile = acct_mgr.htfile',
             'acct_mgr.http = acct_mgr.http',
+            'acct_mgr.pwhash = acct_mgr.pwhash',
             'acct_mgr.svnserve = acct_mgr.svnserve',
             'acct_mgr.web_ui = acct_mgr.web_ui',
         ]
