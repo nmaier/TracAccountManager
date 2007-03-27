@@ -71,6 +71,10 @@ class HtPasswdTestCase(_BaseTestCase):
         self._do_password_test('test_sha',
                                'user:{SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=\n')
 
+    def test_no_trailing_newline(self):
+        self._do_password_test('test_no_trailing_newline',
+                               'user:$apr1$xW/09...$fb150dT95SoL1HwXtHS/I0')
+
     def _do_password_test(self, filename, content):
         store = HtPasswdStore(self.env)
         filename = self._create_file(filename, content=content)
