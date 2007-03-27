@@ -35,7 +35,6 @@ class HtPasswdHashMethod(Component):
     def check_hash(self, user, password, hash):
         password = password.encode('utf-8')
         hash2 = htpasswd(password, hash)
-        print password, hash, hash2
         return hash == hash2
 
 
@@ -87,7 +86,6 @@ def htpasswd(password, salt_=None):
         salt_ = salt()
         if crypt is None:
             salt_ = '$apr1$' + salt_
-    print 'htpasswd', password, salt_, crypt(password, salt_)
     if salt_.startswith('$apr1$'):
         return md5crypt(password, salt_[6:].split('$')[0], '$apr1$')
     elif salt_.startswith('{SHA}'):

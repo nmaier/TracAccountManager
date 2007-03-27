@@ -71,7 +71,6 @@ class SessionStore(Component):
                        "WHERE authenticated=1 AND name='password' "
                        "AND sid=%s", (user,))
         for hash, in cursor:
-            print 'hash', hash
             return self.hash_method.check_hash(user, password, hash)
         return False
 
