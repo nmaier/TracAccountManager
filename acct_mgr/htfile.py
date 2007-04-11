@@ -53,13 +53,14 @@ class AbstractPasswordFileStore(Component):
         filename = self.filename
         if not os.path.exists(filename):
             return False
-        prefix = self.prefix(user.encode('utf-8'))
+        user = user.encode('utf-8')
         password = password.encode('utf-8')
+        prefix = self.prefix(user)
         fd = file(filename)
         try:
             for line in fd:
                 if line.startswith(prefix):
-                    return self._check_userline(password, prefix,
+                    return self._check_userline(user, password,
                                                 line[len(prefix):].rstrip('\n'))
         finally:
             fd.close()
@@ -125,7 +126,7 @@ class HtPasswdStore(AbstractPasswordFileStore):
     def userline(self, user, password):
         return self.prefix(user) + htpasswd(password)
 
-    def _check_userline(self, password, prefix, suffix):
+    def _check_userline(self, user, password, suffix):
         return suffix == htpasswd(password, suffix)
 
     def _get_users(self, filename):
@@ -163,7 +164,7 @@ class HtDigestStore(AbstractPasswordFileStore):
     def userline(self, user, password):
         return self.prefix(user) + htdigest(user, self.realm, password)
 
-    def _check_userline(self, password, prefix, suffix):
+    def _check_userline(self, user, password, suffix):
         return suffix == htdigest(user, self.realm, password)
 
     def _get_users(self, filename):

@@ -40,6 +40,11 @@ class _BaseTestCase(unittest.TestCase):
         fd.close()
         return filename
 
+    def _do_password_test(self, filename, content):
+        filename = self._create_file(filename, content=content)
+        self.env.config.set('account-manager', 'password_file', filename)
+        self.assertTrue(self.store.check_password('user', 'password'))
+
 
 class HtDigestTestCase(_BaseTestCase):
     def setUp(self):
@@ -48,17 +53,22 @@ class HtDigestTestCase(_BaseTestCase):
                             'HtDigestStore')
         self.env.config.set('account-manager', 'htdigest_realm',
                             'TestRealm')
+        self.store = HtDigestStore(self.env)
 
     def test_userline(self):
-        store = HtDigestStore(self.env)
-        self.assertEqual(store.userline('user', 'password'),
+        self.assertEqual(self.store.userline('user', 'password'),
                          'user:TestRealm:752b304cc7cf011d69ee9b79e2cd0866')
+
+    def test_file(self):
+        self._do_password_test('test_file', 
+                               'user:TestRealm:752b304cc7cf011d69ee9b79e2cd0866')
 
 class HtPasswdTestCase(_BaseTestCase):
     def setUp(self):
         _BaseTestCase.setUp(self)
         self.env.config.set('account-manager', 'password_store',
                             'HtPasswdStore')
+        self.store = HtPasswdStore(self.env)
 
     def test_md5(self):
         self._do_password_test('test_md5',
@@ -74,12 +84,6 @@ class HtPasswdTestCase(_BaseTestCase):
     def test_no_trailing_newline(self):
         self._do_password_test('test_no_trailing_newline',
                                'user:$apr1$xW/09...$fb150dT95SoL1HwXtHS/I0')
-
-    def _do_password_test(self, filename, content):
-        store = HtPasswdStore(self.env)
-        filename = self._create_file(filename, content=content)
-        self.env.config.set('account-manager', 'password_file', filename)
-        self.assertTrue(store.check_password('user', 'password'))
 
 
 def suite():
