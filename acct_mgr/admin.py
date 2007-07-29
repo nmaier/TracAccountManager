@@ -30,7 +30,7 @@ def _getoptions(cls):
 
 class AccountManagerAdminPage(Component):
 
-    implements(IAdminPanelProvider)
+    implements(IAdminPanelProvider, ITemplateProvider)
 
     def __init__(self):
         self.account_manager = AccountManager(self.env)
