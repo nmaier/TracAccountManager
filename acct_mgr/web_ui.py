@@ -119,7 +119,7 @@ class AccountModule(Component):
     module must be set in trac.ini in order to use this.
     """
 
-    implements(IPreferencePanelProvider, IRequestHandler, ITemplateProvider)
+    implements(IPreferencePanelProvider, IRequestHandler, ITemplateProvider, INavigationContributor)
 
     _password_chars = string.ascii_letters + string.digits
     password_length = IntOption('account-manager', 'generated_password_length', 8,
@@ -157,6 +157,23 @@ class AccountModule(Component):
     def process_request(self, req):
         data = {'reset': self._do_reset_password(req)}
         return 'reset_password.html', data, None
+
+    # INavigationContributor methods
+    def get_active_navigation_item(self, req):
+        return 'reset_password'
+
+    def get_navigation_items(self, req):
+        if not self.reset_password_enabled or LoginModule(self.env).enabled:
+            return
+        if req.authname == 'anonymous':
+            yield 'metanav', 'reset_password', Markup('<a href="%s">Forgot your password?</a>',
+                                                      (req.href.reset_password()))
+
+    def reset_password_enabled(self):
+        return (self.env.is_component_enabled(AccountModule)
+                and NotificationSystem(self.env).smtp_enabled
+                and self._write_check())
+    reset_password_enabled = property(reset_password_enabled)
 
     def _do_account(self, req):
         if not req.authname or req.authname == 'anonymous':
@@ -349,9 +366,7 @@ class LoginModule(auth.LoginModule):
         if req.path_info.startswith('/login') and req.authname == 'anonymous':
             data = {
                 'referer': self._referer(req),
-                'reset_password_enabled':
-                    (self.env.is_component_enabled(AccountModule)
-                     and NotificationSystem(self.env).smtp_enabled)
+                'reset_password_enabled': AccountModule(self.env).reset_password_enabled
             }
             if req.method == 'POST':
                 data['login_error'] = 'Invalid username or password'
