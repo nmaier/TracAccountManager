@@ -146,7 +146,6 @@ class AccountModule(Component):
 
     def render_preference_panel(self, req, panel):
         data = {'account': self._do_account(req)}
-        print data
         return 'prefs_account.html', data
 
     # IRequestHandler methods
