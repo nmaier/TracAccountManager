@@ -55,11 +55,13 @@ class SessionStore(Component):
                        "WHERE authenticated=1 AND name='password' "
                        "AND sid=%s", (hash, user))
         if cursor.rowcount > 0:
+            db.commit()
             return False # updated existing password
         cursor.execute("INSERT INTO session_attribute "
                        "(sid,authenticated,name,value) "
                        "VALUES (%s,1,'password',%s)",
                        (user, hash))
+        db.commit()
         return True
 
     def check_password(self, user, password):
@@ -87,4 +89,5 @@ class SessionStore(Component):
                        "AND sid=%s", (user,))
         # TODO cursor.rowcount doesn't seem to get # deleted
         # is there another way to get count instead of using has_user?
+        db.commit()
         return True
