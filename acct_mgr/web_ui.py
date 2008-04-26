@@ -165,8 +165,7 @@ class AccountModule(Component):
         if not self.reset_password_enabled or LoginModule(self.env).enabled:
             return
         if req.authname == 'anonymous':
-            yield 'metanav', 'reset_password', Markup('<a href="%s">Forgot your password?</a>',
-                                                      (req.href.reset_password()))
+            yield 'metanav', 'reset_password', Markup('<a href="%s">Forgot your password?</a>') % req.href.reset_password()
 
     def reset_password_enabled(self):
         return (self.env.is_component_enabled(AccountModule)
@@ -298,8 +297,7 @@ class RegistrationModule(Component):
         if not self._enable_check():
             return
         if req.authname == 'anonymous':
-            yield 'metanav', 'register', Markup('<a href="%s">Register</a>',
-                                                (req.href.register()))
+            yield 'metanav', 'register', Markup('<a href="%s">Register</a>') % req.href.register()
 
     # IRequestHandler methods
 
