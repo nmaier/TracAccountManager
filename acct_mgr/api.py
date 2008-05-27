@@ -112,10 +112,12 @@ class AccountManager(Component):
         cursor.execute("DELETE FROM session where sid=%s", (user,)) 
         # Delete any custom permissions set for the user 
         cursor.execute("DELETE FROM permission where username=%s", (user,)) 
+        db.commit()
+        db.close()
         # Delete from password store 
+        self.log.debug('deleted user')
         if self.password_store.delete_user(user):
             self._notify('deleted', user)
-        db.close()
 
     def supports(self, operation):
         try:
