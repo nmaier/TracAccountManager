@@ -104,8 +104,18 @@ class AccountManager(Component):
         return self.password_store.check_password(user, password)
 
     def delete_user(self, user):
+        db = self.env.get_db_cnx() 
+        cursor = db.cursor() 
+        # Delete session attributes 
+        cursor.execute("DELETE FROM session_attribute where sid=%s", (user,)) 
+        # Delete session 
+        cursor.execute("DELETE FROM session where sid=%s", (user,)) 
+        # Delete any custom permissions set for the user 
+        cursor.execute("DELETE FROM permission where username=%s", (user,)) 
+        # Delete from password store 
         if self.password_store.delete_user(user):
             self._notify('deleted', user)
+        db.close()
 
     def supports(self, operation):
         try:
