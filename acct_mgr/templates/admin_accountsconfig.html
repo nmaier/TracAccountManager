@@ -29,6 +29,16 @@
           </label>
         </div>
       </fieldset>
+      <fieldset>
+        <legend>Password Reset</legend>
+        <label for="force_passwd_change">
+          Force users to change passwords after a password reset?
+        </label>
+        <input type="radio" name="force_passwd_change" value="true"
+          checked="${force_passwd_change and 'checked' or None}">Yes</input>
+        <input type="radio" name="force_passwd_change" value="false"
+          checked="${not force_passwd_change and 'checked' or None}">No</input>
+      </fieldset>
       <div class="buttons">
         <input type="submit" name="save" value="Save" />
       </div>

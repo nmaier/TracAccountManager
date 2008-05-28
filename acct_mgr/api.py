@@ -10,7 +10,7 @@
 # Author: Matthew Good <trac@matt-good.net>
 
 from trac.core import *
-from trac.config import Option, ExtensionOption
+from trac.config import Option, BoolOption, ExtensionOption
 
 class IPasswordStore(Interface):
     """An interface for Components that provide a storage method for users and
@@ -85,6 +85,9 @@ class AccountManager(Component):
     _password_format = Option('account-manager', 'password_format')
     stores = ExtensionPoint(IPasswordStore)
     change_listeners = ExtensionPoint(IAccountChangeListener)
+    force_passwd_change = BoolOption('account-manager', 'force_passwd_change',
+                                     True, doc="Forge the user to change "
+                                     "password when it's reset.")
 
     # Public API
 

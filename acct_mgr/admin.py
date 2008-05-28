@@ -57,6 +57,11 @@ class AccountManagerAdminPage(Component):
                 if newvalue is not None:
                     self.config.set(option.section, option.name, newvalue)
                     self.config.save()
+            self.config.set('account-manager', 'force_passwd_change',
+                            req.args.get('force_passwd_change'))
+            self.config.save()
+
+
         try:
             selected = self.account_manager.password_store
         except AttributeError:
@@ -75,7 +80,9 @@ class AccountManagerAdminPage(Component):
             } for store in self.account_manager.stores
         ]
         sections = sorted(sections, key=lambda i: i['name'])
-        return 'admin_accountsconfig.html', {'sections': sections}
+        data = {'sections': sections,
+                'force_passwd_change': self.account_manager.force_passwd_change}
+        return 'admin_accountsconfig.html', data
 
     def _do_users(self, req):
         perm = PermissionSystem(self.env)
@@ -135,13 +142,13 @@ class AccountManagerAdminPage(Component):
         return 'admin_users.html', data
 
     # ITemplateProvider
-     
+
     def get_htdocs_dirs(self):
         """Return the absolute path of a directory containing additional
         static resources (such as images, style sheets, etc).
         """
         return []
- 
+
     def get_templates_dirs(self):
         """Return the absolute path of the directory containing the provided
         ClearSilver templates.

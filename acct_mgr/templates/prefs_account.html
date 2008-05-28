@@ -34,7 +34,7 @@
     </form>
     </py:if>
   </div>
- 
+
   <head>
     <title>Account</title>
   </head>
@@ -44,7 +44,12 @@
       <h2>Error</h2>
       <p>$account.error</p>
     </div>
-
+    <div class="system-message" py:if="account.force_change_passwd">
+      <h2>Immediate action required</h2>
+      <p>You are required to change password because of a recent
+        password change request.</p>
+      <p><strong>Please change your password now.</strong></p>
+    </div>
     <p py:if="account.message">$account.message</p>
     <h2>Change Password</h2>
 

@@ -19,9 +19,9 @@ from trac.notification import NotificationSystem, NotifyEmail
 from trac.prefs import IPreferencePanelProvider
 from trac.web import auth
 from trac.web.api import IAuthenticator
-from trac.web.main import IRequestHandler
+from trac.web.main import IRequestHandler, IRequestFilter
 from trac.web.chrome import INavigationContributor, ITemplateProvider
-from trac.util import Markup
+from genshi.builder import tag
 
 from api import AccountManager
 
@@ -119,11 +119,12 @@ class AccountModule(Component):
     module must be set in trac.ini in order to use this.
     """
 
-    implements(IPreferencePanelProvider, IRequestHandler, ITemplateProvider, INavigationContributor)
+    implements(IPreferencePanelProvider, IRequestHandler, ITemplateProvider,
+               INavigationContributor, IRequestFilter)
 
     _password_chars = string.ascii_letters + string.digits
-    password_length = IntOption('account-manager', 'generated_password_length', 8,
-                                'Length of the randomly-generated passwords '
+    password_length = IntOption('account-manager', 'generated_password_length',
+                                8, 'Length of the randomly-generated passwords '
                                 'created when resetting the password for an '
                                 'account.')
 
@@ -157,6 +158,18 @@ class AccountModule(Component):
         data = {'reset': self._do_reset_password(req)}
         return 'reset_password.html', data, None
 
+    # IRequestFilter methods
+    def pre_process_request(self, req, handler):
+        return handler
+
+    def post_process_request(self, req, template, data, content_type):
+        if req.authname and req.authname != 'anonymous':
+            if req.session.get('force_change_passwd', False):
+                redirect_url = req.href.prefs('account')
+                if req.path_info != redirect_url:
+                    req.redirect(redirect_url)
+        return (template, data, content_type)
+
     # INavigationContributor methods
     def get_active_navigation_item(self, req):
         return 'reset_password'
@@ -165,7 +178,8 @@ class AccountModule(Component):
         if not self.reset_password_enabled or LoginModule(self.env).enabled:
             return
         if req.authname == 'anonymous':
-            yield 'metanav', 'reset_password', Markup('<a href="%s">Forgot your password?</a>') % req.href.reset_password()
+            yield 'metanav', 'reset_password', tag.a(
+                "Forgot your password?", href=req.href.reset_password())
 
     def reset_password_enabled(self):
         return (self.env.is_component_enabled(AccountModule)
@@ -179,9 +193,16 @@ class AccountModule(Component):
         action = req.args.get('action')
         delete_enabled = AccountManager(self.env).supports('delete_user')
         data = {'delete_enabled': delete_enabled}
+        force_change_password = req.session.get('force_change_passwd', False)
+        if force_change_password:
+            data['force_change_passwd'] = True
         if req.method == 'POST':
             if action == 'save':
                 data.update(self._do_change_password(req))
+                if force_change_password:
+                    data['force_change_passwd'] = False
+                    del(req.session['force_change_passwd'])
+                    req.session.save()
             elif action == 'delete' and delete_enabled:
                 data.update(self._do_delete(req))
             else:
@@ -208,7 +229,21 @@ class AccountModule(Component):
 
         new_password = self._random_password()
         notifier.notify(username, new_password)
-        AccountManager(self.env).set_password(username, new_password)
+        mgr = AccountManager(self.env)
+        mgr.set_password(username, new_password)
+        if mgr.force_passwd_change:
+            db = self.env.get_db_cnx()
+            cursor = db.cursor()
+            cursor.execute("UPDATE session_attribute SET value=%s "
+                           "WHERE name=%s AND sid=%s AND authenticated=1",
+                           (1, "force_change_passwd", username))
+            if not cursor.rowcount:
+                cursor.execute("INSERT INTO session_attribute "
+                               "(sid,authenticated,name,value) "
+                               "VALUES (%s,1,%s,%s)",
+                               (username, "force_change_passwd", 1))
+            db.commit()
+
         return {'sent_to_email': email}
 
     def _random_password(self):
@@ -249,7 +284,7 @@ class AccountModule(Component):
         req.redirect(req.href.logout())
 
     # ITemplateProvider
-    
+
     def get_htdocs_dirs(self):
         """Return the absolute path of a directory containing additional
         static resources (such as images, style sheets, etc).
@@ -297,7 +332,9 @@ class RegistrationModule(Component):
         if not self._enable_check():
             return
         if req.authname == 'anonymous':
-            yield 'metanav', 'register', Markup('<a href="%s">Register</a>') % req.href.register()
+            yield 'metanav', 'register', tag.a("Register",
+                                               href=req.href.register())
+
 
     # IRequestHandler methods
 
@@ -324,7 +361,7 @@ class RegistrationModule(Component):
 
 
     # ITemplateProvider
-    
+
     def get_htdocs_dirs(self):
         """Return the absolute path of a directory containing additional
         static resources (such as images, style sheets, etc).
@@ -401,7 +438,7 @@ class LoginModule(auth.LoginModule):
     enabled = property(enabled)
 
     # ITemplateProvider
-    
+
     def get_htdocs_dirs(self):
         """Return the absolute path of a directory containing additional
         static resources (such as images, style sheets, etc).
