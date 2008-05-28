@@ -1,0 +1,6 @@
+${account.action} for user ${account.username}
+
+--
+${project.name} <${project.url}>
+${project.descr}
+

@@ -10,7 +10,7 @@ from setuptools import setup
 
 setup(
     name = 'TracAccountManager',
-    version = '0.2',
+    version = '0.2.1',
     author = 'Matthew Good',
     author_email = 'trac@matt-good.net',
     url = 'http://trac-hacks.org/wiki/AccountManagerPlugin',
@@ -37,6 +37,7 @@ setup(
             'acct_mgr.pwhash = acct_mgr.pwhash',
             'acct_mgr.svnserve = acct_mgr.svnserve',
             'acct_mgr.web_ui = acct_mgr.web_ui',
+            'acct_mgr.notification = acct_mgr.notification',
         ]
     },
 
