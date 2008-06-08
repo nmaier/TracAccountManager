@@ -1,0 +1,41 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:py="http://genshi.edgewall.org/"
+      xmlns:xi="http://www.w3.org/2001/XInclude">
+  <xi:include href="layout.html" />
+  <head>
+    <title>Verify Email</title>
+    <script type="text/javascript">
+    jQuery(document).ready(function($) {
+        $('#token')[0].focus();
+    });
+    </script>
+  </head>
+
+  <body>
+    <div id="content" class="login">
+
+      <h1>Verify Email</h1>
+      
+      <p class="help">An email was sent to $req.session.email with a token to
+      verify your new address.  Please check you email and enter the token
+      in the form below.</p>
+      <p>You can <a href="${href.prefs()}">change your email address</a> if it
+      is incorrect.</p>
+
+      <form method="post" action="">
+        <div>
+          <label for="token">Verification Token:</label>
+          <input type="text" id="token" name="token" class="textwidget"
+                 size="10" value="${value_of('token')}" />
+        </div>
+        <input type="submit" name="verify" value="Verify" />
+        <input type="submit" name="resend" value="Resend Email" />
+      </form>
+
+    </div>
+  </body>
+</html>
+

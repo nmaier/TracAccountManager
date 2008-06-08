@@ -16,6 +16,7 @@ from trac.core import *
 from trac.config import Option
 
 from md5crypt import md5crypt
+from acct_mgr.util import urandom
 
 class IPasswordHashMethod(Interface):
     def generate_hash(user, password):
@@ -62,15 +63,6 @@ try:
     from crypt import crypt
 except ImportError:
     crypt = None
-
-# os.urandom was added in Python 2.4
-# try to fall back on reading from /dev/urandom on older Python versions
-try:
-    from os import urandom
-except ImportError:
-    from random import randrange
-    def urandom(n):
-        return ''.join([chr(randrange(256)) for _ in xrange(n)])
 
 def salt():
     s = ''

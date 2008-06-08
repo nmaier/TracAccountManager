@@ -1,0 +1,9 @@
+Please visit the following URL to confirm your email address.
+
+Verification URL: <$verify.link>
+Username: $account.username
+Verification Token: $account.token
+
+-- 
+${project.name} <${project.url}>
+${project.descr}

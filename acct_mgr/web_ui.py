@@ -9,6 +9,8 @@
 #
 # Author: Matthew Good <trac@matt-good.net>
 
+import base64
+import os
 import random
 import string
 
@@ -20,10 +22,12 @@ from trac.prefs import IPreferencePanelProvider
 from trac.web import auth
 from trac.web.api import IAuthenticator
 from trac.web.main import IRequestHandler, IRequestFilter
+from trac.web import chrome
 from trac.web.chrome import INavigationContributor, ITemplateProvider
 from genshi.builder import tag
 
 from api import AccountManager
+from acct_mgr.util import urandom
 
 def _create_user(req, env, check_permissions=True):
     mgr = AccountManager(env)
@@ -78,8 +82,10 @@ def _create_user(req, env, check_permissions=True):
     db.commit()
 
 
-class PasswordResetNotification(NotifyEmail):
-    template_name = 'reset_password_email.txt'
+class SingleUserNofification(NotifyEmail):
+    """Helper class used for account email notifications which should only be
+    sent to one persion, not including the rest of the normally CCed users
+    """
     _username = None
 
     def get_recipients(self, resid):
@@ -94,9 +100,22 @@ class PasswordResetNotification(NotifyEmail):
         else:
             return None
 
-    def notify(self, username, password):
+    def notify(self, username, subject):
         # save the username for use in `get_smtp_address`
         self._username = username
+        old_public_cc = self.config.getbool('notification', 'use_public_cc')
+        # override public cc option so that the user's email is included in the To: field
+        self.config.set('notification', 'use_public_cc', 'true')
+        try:
+            NotifyEmail.notify(self, username, subject)
+        finally:
+            self.config.set('notification', 'use_public_cc', old_public_cc)
+
+
+class PasswordResetNotification(SingleUserNofification):
+    template_name = 'reset_password_email.txt'
+
+    def notify(self, username, password):
         self.data.update({
             'account': {
                 'username': username,
@@ -110,7 +129,7 @@ class PasswordResetNotification(NotifyEmail):
         projname = self.config.get('project', 'name')
         subject = '[%s] Trac password reset for user: %s' % (projname, username)
 
-        NotifyEmail.notify(self, username, subject)
+        SingleUserNofification.notify(self, username, subject)
 
 
 class AccountModule(Component):
@@ -452,3 +471,92 @@ class LoginModule(auth.LoginModule):
         from pkg_resources import resource_filename
         return [resource_filename(__name__, 'templates')]
 
+
+class MessageWrapper(object):
+    """Wrapper for add_warning and add_notice to work around the requirement
+    for a % operator."""
+    def __init__(self, body):
+        self.body = body
+
+    def __mod__(self, rhs):
+        return self.body
+
+
+class EmailVerificationNotification(SingleUserNofification):
+    template_name = 'verify_email.txt'
+
+    def notify(self, username, token):
+        self.data.update({
+            'account': {
+                'username': username,
+                'token': token,
+            },
+            'verify': {
+                'link': self.env.abs_href.verify_email(token=token),
+            }
+        })
+
+        projname = self.config.get('project', 'name')
+        subject = '[%s] Trac email verification for user: %s' % (projname, username)
+
+        SingleUserNofification.notify(self, username, subject)
+
+
+class EmailVerificationModule(Component):
+    implements(IRequestFilter, IRequestHandler)
+
+    # IRequestFilter methods
+
+    def pre_process_request(self, req, handler):
+        if handler is not self and 'email_verification_token' in req.session:
+            chrome.add_warning(req, MessageWrapper(tag.span(
+                    'Your permissions have been limited until you ',
+                    tag.a(href=req.href.verify_email())(
+                          'verify your email address'))))
+            req.perm = perm.PermissionCache(self.env, 'anonymous')
+        return handler
+
+    def post_process_request(self, req, template, data, content_type):
+        if req.session.get('email') != req.session.get('email_verification_sent_to'):
+            req.session['email_verification_token'] = self._gen_token()
+            req.session['email_verification_sent_to'] = req.session.get('email')
+            self._send_email(req)
+            chrome.add_notice(req, MessageWrapper(tag.span(
+                    'An email has been sent to ', req.session['email'],
+                    ' with a token to ',
+                    tag.a(href=req.href.verify_email())(
+                        'verify your new email address'))))
+        return template, data, content_type
+
+    # IRequestHandler methods
+
+    def match_request(self, req):
+        return req.path_info == '/verify_email'
+
+    def process_request(self, req):
+        if 'email_verification_token' not in req.session:
+            chrome.add_notice(req, 'Your email is already verified')
+        elif req.method != 'POST':
+            pass
+        elif 'resend' in req.args:
+            self._send_email(req)
+            chrome.add_notice(req,
+                    'A notification email has been resent to %s.',
+                    req.session.get('email'))
+        elif 'verify' in req.args:
+            if req.args['token'] == req.session['email_verification_token']:
+                del req.session['email_verification_token']
+                chrome.add_notice(req, 'Thank you for verifying your email address')
+            else:
+                chrome.add_warning(req, 'Invalid verification token')
+        data = {}
+        if 'token' in req.args:
+            data['token'] = req.args['token']
+        return 'verify_email.html', data, None
+
+    def _gen_token(self):
+        return base64.urlsafe_b64encode(urandom(6))
+
+    def _send_email(self, req):
+        notifier = EmailVerificationNotification(self.env)
+        notifier.notify(req.authname, req.session['email_verification_token'])
