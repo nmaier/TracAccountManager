@@ -19,7 +19,7 @@
       <p>$account.delete_error</p>
     </div>
 
-    <form method="post" action=""
+    <form method="post" action="" id="acctmgr_delete_account"
           onsubmit="return confirm('Are you sure you want to delete your account?');">
       <div class="field">
         <label>Password:
@@ -43,12 +43,6 @@
     <div class="system-message" py:if="account.error">
       <h2>Error</h2>
       <p>$account.error</p>
-    </div>
-    <div class="system-message" py:if="account.force_change_passwd">
-      <h2>Immediate action required</h2>
-      <p>You are required to change password because of a recent
-        password change request.</p>
-      <p><strong>Please change your password now.</strong></p>
     </div>
     <p py:if="account.message">$account.message</p>
     <h2>Change Password</h2>

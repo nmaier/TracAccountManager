@@ -213,19 +213,25 @@ class AccountModule(Component):
         delete_enabled = AccountManager(self.env).supports('delete_user')
         data = {'delete_enabled': delete_enabled}
         force_change_password = req.session.get('force_change_passwd', False)
-        if force_change_password:
-            data['force_change_passwd'] = True
         if req.method == 'POST':
             if action == 'save':
                 data.update(self._do_change_password(req))
                 if force_change_password:
-                    data['force_change_passwd'] = False
                     del(req.session['force_change_passwd'])
                     req.session.save()
+                    chrome.add_notice(req, MessageWrapper(tag(
+                        "Thank you for taking the time to update your password."
+                    )))
+                    force_change_password = False
             elif action == 'delete' and delete_enabled:
                 data.update(self._do_delete(req))
             else:
                 data.update({'error': 'Invalid action'})
+        if force_change_password:
+            chrome.add_warning(req, MessageWrapper(tag(
+                "You are required to change password because of a recent "
+                "password change request. ",
+                tag.b("Please change your password now."))))
         return data
 
     def _do_reset_password(self, req):
@@ -508,6 +514,11 @@ class EmailVerificationModule(Component):
     # IRequestFilter methods
 
     def pre_process_request(self, req, handler):
+        if not req.session.authenticated:
+            # Anonymous users should register and perms should be tweaked so
+            # that anonymous users can't edit wiki pages and change or create
+            # tickets. As such, this email verifying code won't be used on them
+            return handler
         if handler is not self and 'email_verification_token' in req.session:
             chrome.add_warning(req, MessageWrapper(tag.span(
                     'Your permissions have been limited until you ',
@@ -517,6 +528,11 @@ class EmailVerificationModule(Component):
         return handler
 
     def post_process_request(self, req, template, data, content_type):
+        if not req.session.authenticated:
+            # Anonymous users should register and perms should be tweaked so
+            # that anonymous users can't edit wiki pages and change or create
+            # tickets. As such, this email verifying code won't be used on them
+            return template, data, content_type
         if req.session.get('email') != req.session.get('email_verification_sent_to'):
             req.session['email_verification_token'] = self._gen_token()
             req.session['email_verification_sent_to'] = req.session.get('email')
