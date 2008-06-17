@@ -85,6 +85,16 @@ class HtPasswdTestCase(_BaseTestCase):
         self._do_password_test('test_no_trailing_newline',
                                'user:$apr1$xW/09...$fb150dT95SoL1HwXtHS/I0')
 
+    def test_add_with_no_trailing_newline(self):
+        filename = self._create_file('test_add_with_no_trailing_newline',
+                                     content='user:$apr1$'
+                                             'xW/09...$fb150dT95SoL1HwXtHS/I0')
+        self.env.config.set('account-manager', 'password_file', filename)
+        self.assertTrue(self.store.check_password('user', 'password'))
+        self.store.set_password('user2', 'password2')
+        self.assertTrue(self.store.check_password('user', 'password'))
+        self.assertTrue(self.store.check_password('user2', 'password2'))
+
 
 def suite():
     suite = unittest.TestSuite()

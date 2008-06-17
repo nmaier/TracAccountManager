@@ -83,8 +83,10 @@ class AbstractPasswordFileStore(Component):
                     if not matched and userline:
                         print userline
                     matched = True
-                else:
+                elif line.endswith('\n'):
                     print line,
+                else: # make sure the last line has a newline
+                    print line
         except EnvironmentError, e:
             if e.errno == errno.ENOENT:
                 pass # ignore when file doesn't exist and create it below
