@@ -32,3 +32,15 @@ class HttpAuthStore(Component):
             return False
         else:
             return True
+
+    def get_users(self):
+        return []
+
+    def has_user(self, user):
+        return False
+
+    def set_password(self, user, password):
+        return False
+
+    def delete_user(self, user):
+        return False
