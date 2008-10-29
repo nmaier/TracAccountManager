@@ -29,7 +29,7 @@
           <div>
             <input type="hidden" name="action" value="create" />
             <label>Username:
-              <input type="text" name="user" class="textwidget" size="20" />
+              <input type="text" name="user" class="textwidget" size="20" value="${acctmgr.username}" />
             </label>
           </div>
           <div>
@@ -48,12 +48,12 @@
           <legend>Optional</legend>
           <div>
             <label>Name:
-              <input type="text" name="name" class="textwidget" size="20" />
+              <input type="text" name="name" class="textwidget" size="20"  value="${acctmgr.name}"/>
             </label>
           </div>
           <div>
             <label>Email:
-              <input type="text" name="email" class="textwidget" size="20" />
+              <input type="text" name="email" class="textwidget" size="20"  value="${acctmgr.email}"/>
             </label>
             <p py:if="reset_password_enabled">Entering your email address will
             enable you to reset your password if you ever forget it.</p>

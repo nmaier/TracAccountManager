@@ -64,7 +64,7 @@ class AbstractPasswordFileStore(Component):
                                                 line[len(prefix):].rstrip('\n'))
         finally:
             fd.close()
-        return False
+        return None
 
     def _update_file(self, prefix, userline):
         """If `userline` is empty the line starting with `prefix` is 

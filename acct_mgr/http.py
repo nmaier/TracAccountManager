@@ -29,7 +29,7 @@ class HttpAuthStore(Component):
             build_opener(HTTPBasicAuthHandler(mgr),
                          HTTPDigestAuthHandler(mgr)).open(self.auth_url)
         except IOError:
-            return False
+            return None
         else:
             return True
 

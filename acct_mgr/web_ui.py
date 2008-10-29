@@ -33,25 +33,38 @@ def _create_user(req, env, check_permissions=True):
     mgr = AccountManager(env)
 
     user = req.args.get('user')
+    name = req.args.get('name')
+    email = req.args.get('email')
+    acctmgr = {'username' : user,
+               'name' : name,
+               'email' : email,
+              }
+    error = TracError('')
+    error.acctmgr = acctmgr
     if not user:
-        raise TracError('Username cannot be empty.')
+        error.message = 'Username cannot be empty.'
+        raise error
 
     if mgr.has_user(user):
-        raise TracError('Another account with that name already exists.')
+        error.message = 'Another account with that name already exists.'
+        raise error
 
     if check_permissions:
         # disallow registration of accounts which have existing permissions
         permission_system = perm.PermissionSystem(env)
         if permission_system.get_user_permissions(user) != \
            permission_system.get_user_permissions('authenticated'):
-            raise TracError('Another account with that name already exists.')
+            error.message = 'Another account with that name already exists.'
+            raise error
 
     password = req.args.get('password')
     if not password:
-        raise TracError('Password cannot be empty.')
+        error.message = 'Password cannot be empty.'
+        raise error
 
     if password != req.args.get('password_confirm'):
-        raise TracError('The passwords must match.')
+        error.message = 'The passwords must match.'
+        raise error
 
     mgr.set_password(user, password)
 
@@ -151,7 +164,7 @@ class AccountModule(Component):
         self._write_check(log=True)
 
     def _write_check(self, log=False):
-        writable = AccountManager(self.env).supports('set_password')
+        writable = AccountManager(self.env).get_all_supporting_stores('set_password')
         if not writable and log:
             self.log.warn('AccountModule is disabled because the password '
                           'store does not support writing.')
@@ -159,10 +172,13 @@ class AccountModule(Component):
 
     #IPreferencePanelProvider methods
     def get_preference_panels(self, req):
-        if not self._write_check():
+        writable = self._write_check()
+        if not writable:
             return
         if req.authname and req.authname != 'anonymous':
-            yield 'account', 'Account'
+            user_store = AccountManager(self.env).find_user_store(req.authname)
+            if user_store in writable:
+                yield 'account', 'Account'
 
     def render_preference_panel(self, req, panel):
         data = {'account': self._do_account(req)}
@@ -370,12 +386,17 @@ class RegistrationModule(Component):
         if req.authname != 'anonymous':
             req.redirect(req.href.prefs('account'))
         action = req.args.get('action')
-        data = {}
+        data = {'acctmgr' : { 'username' : None,
+                              'name' : None,
+                              'email' : None,
+                            },
+                }
         if req.method == 'POST' and action == 'create':
             try:
                 _create_user(req, self.env)
             except TracError, e:
                 data['registration_error'] = e.message
+                data['acctmgr'] = e.acctmgr
             else:
                 req.redirect(req.href.login())
         data['reset_password_enabled'] = \

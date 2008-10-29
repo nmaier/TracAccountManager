@@ -74,7 +74,7 @@ class SessionStore(Component):
                        "AND sid=%s", (user,))
         for hash, in cursor:
             return self.hash_method.check_hash(user, password, hash)
-        return False
+        return None
 
     def delete_user(self, user):
         """Deletes the user account.

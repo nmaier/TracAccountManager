@@ -19,7 +19,7 @@
 
         <legend>Add Account:</legend>
         <div class="field">
-          <label>Username: <input type="text" name="user" class="textwidget" /></label>
+          <label>Username: <input type="text" name="user" class="textwidget" value="${acctmgr.username}" /></label>
         </div>
         <div class="field">
           <label>Password: <input type="password" name="password" class="textwidget" /></label>
@@ -28,14 +28,36 @@
           <label>Confirm password: <input type="password" name="password_confirm" class="textwidget" /></label>
         </div>
         <div class="field">
-          <label>Name: <input type="text" name="name" class="textwidget" /></label>
+          <label>Name: <input type="text" name="name" class="textwidget" value="${acctmgr.name}" /></label>
         </div>
         <div class="field">
-          <label>Email: <input type="text" name="email" class="textwidget" /></label>
+          <label>Email: <input type="text" name="email" class="textwidget" value="${acctmgr.email}" /></label>
         </div>
         <p class="help">Add a new user account.</p>
         <div class="buttons">
           <input type="submit" name="add" value=" Add " />
+        </div>
+      </fieldset>
+    </form>
+
+    <form id="changepassword" class="addnew" method="post" py:if="password_change_enabled">
+      <fieldset>
+        <div class="system-message"
+             py:if="password_change_error"><p>${password_change_error}</p></div>
+
+        <legend>Change Password:</legend>
+        <div class="field">
+          <label>Username: <input type="text" name="change_user" class="textwidget" value="${acctmgr.change_username}" /></label>
+        </div>
+        <div class="field">
+          <label>Password: <input type="password" name="change_password" class="textwidget" /></label>
+        </div>
+        <div class="field">
+          <label>Confirm password: <input type="password" name="change_password_confirm" class="textwidget" /></label>
+        </div>
+        <p class="help">Change a user's password.</p>
+        <div class="buttons">
+          <input type="submit" name="change" value=" Change " />
         </div>
       </fieldset>
     </form>

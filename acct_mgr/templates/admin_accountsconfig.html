@@ -16,8 +16,13 @@
       <fieldset py:for="section in sections">
         <legend>
           <label>
+            <select name="${section.classname}" >
+              <option py:for="order in numstores" value="${order}" selected="${order == section.order or None}">${order == 0 and '--' or order}</option>
+            </select>
+<!--
             <input type="radio" name="selected" value="$section.classname"
                    checked="${section.selected and 'checked' or None}" />
+-->
             $section.name
           </label>
         </legend>

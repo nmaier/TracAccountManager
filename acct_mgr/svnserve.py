@@ -60,7 +60,9 @@ class SvnServePasswordStore(Component):
         cfg.save()
  
     def check_password(self, user, password):
-        return password == self._config.get('users', user)
+        if self.has_user(user):
+            return password == self._config.get('users', user)
+        return None
 
     def delete_user(self, user):
         cfg = self._config

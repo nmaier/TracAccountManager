@@ -10,7 +10,7 @@
 # Author: Matthew Good <trac@matt-good.net>
 
 from trac.core import *
-from trac.config import Option, BoolOption, ExtensionOption
+from trac.config import Option, BoolOption, ExtensionOption, OrderedExtensionsOption
 
 class IPasswordStore(Interface):
     """An interface for Components that provide a storage method for users and
@@ -46,6 +46,14 @@ class IPasswordStore(Interface):
 
     def check_password(self, user, password):
         """Checks if the password is valid for the user.
+    
+        Returns True if the correct user and password are specfied.  Returns
+        False if the incorrect password was specified.  Returns None if the
+        user doesn't exist in this password store.
+
+        Note: Returing `False` is an active rejection of the login attempt.
+        Return None to let the auth fall through to the next store in the
+        chain.
         """
 
     def delete_user(self, user):
@@ -76,12 +84,15 @@ class AccountManager(Component):
     The methods will be handled by the underlying password storage
     implementation set in trac.ini with the "account-manager.password_format"
     setting.
+
+    The "account-manager.password_store" may be an ordered list of password
+    stores.  if it is a list, then each password store is queried in turn.
     """
 
     implements(IAccountChangeListener)
 
-    _password_store = ExtensionOption('account-manager', 'password_store',
-                                      IPasswordStore)
+    _password_store = OrderedExtensionsOption('account-manager', 'password_store',
+                                              IPasswordStore, include_missing=False)
     _password_format = Option('account-manager', 'password_format')
     stores = ExtensionPoint(IPasswordStore)
     change_listeners = ExtensionPoint(IAccountChangeListener)
@@ -92,43 +103,74 @@ class AccountManager(Component):
     # Public API
 
     def get_users(self):
-        return self.password_store.get_users()
+        users = []
+        for store in self._password_store:
+            users.extend(store.get_users())
+        return users
 
     def has_user(self, user):
-        return self.password_store.has_user(user)
+        exists = False
+        for store in self._password_store:
+            if store.has_user(user):
+                exists = True
+                break
+            continue
+        return exists
 
     def set_password(self, user, password):
-        if self.password_store.set_password(user, password):
-            self._notify('created', user, password)
+        store = self.find_user_store(user)
+        if store and not hasattr(store, 'set_password'):
+            raise TracError('The authentication backend for the user, %s, '
+                            'does not support setting the password' % user)
+        elif not store:
+            store = self.get_supporting_store('set_password')
+        if store:
+            if store.set_password(user, password):
+                self._notify('created', user, password)
+            else:
+                self._notify('password_changed', user, password)
         else:
-            self._notify('password_changed', user, password)
+            raise TracError('None of the IPasswordStore components listed in '
+                            'the trac.ini support setting the password or '
+                            'creating users')
 
     def check_password(self, user, password):
-        return self.password_store.check_password(user, password)
+        valid = False
+        for store in self._password_store:
+            valid = store.check_password(user, password)
+            if valid  or (valid == False):
+                break
+            continue
+        return valid
 
     def delete_user(self, user):
-        db = self.env.get_db_cnx() 
-        cursor = db.cursor() 
+        db = self.env.get_db_cnx()
+        cursor = db.cursor()
         # Delete session attributes 
-        cursor.execute("DELETE FROM session_attribute where sid=%s", (user,)) 
+        cursor.execute("DELETE FROM session_attribute where sid=%s", (user,))
         # Delete session 
-        cursor.execute("DELETE FROM session where sid=%s", (user,)) 
+        cursor.execute("DELETE FROM session where sid=%s", (user,))
         # Delete any custom permissions set for the user 
-        cursor.execute("DELETE FROM permission where username=%s", (user,)) 
+        cursor.execute("DELETE FROM permission where username=%s", (user,))
         db.commit()
         db.close()
         # Delete from password store 
-        self.log.debug('deleted user')
-        if self.password_store.delete_user(user):
-            self._notify('deleted', user)
+        self.log.debug('deleted user: %s' % user)
+        store = self.find_user_store(user)
+        if hasattr(store, 'delete_user'):
+            if store and store.delete_user(user):
+                self._notify('deleted', user)
 
     def supports(self, operation):
         try:
-            store = self.password_store
+            stores = self.password_store
         except AttributeError:
             return False
         else:
-            return hasattr(store, operation)
+            if self.get_supporting_store(operation):
+                return True
+            else:
+                return False
 
     def password_store(self):
         try:
@@ -141,10 +183,54 @@ class AccountManager(Component):
                 if config_key is None:
                     continue
                 if config_key() == fmt:
-                    return store
+                    return [store]
             # if the "password_format" is not set re-raise the AttributeError
             raise
     password_store = property(password_store)
+
+    def get_supporting_store(self, operation):
+        """Returns the IPasswordStore that implements the specified operaion
+
+        None is returned if no supporting store can be found
+        """
+        supports = False
+        for store in self.password_store:
+            if hasattr(store, operation):
+                supports = True
+                break
+            continue
+        store = supports and store or None
+        return store
+
+    def get_all_supporting_stores(self, operation):
+        """Returns a list of stores that implement the specified operation"""
+        stores = []
+        for store in self.password_store:
+            if hasattr(store, operation):
+                stores.append(store)
+            continue
+        return stores
+
+    def find_user_store(self, user):
+        """Locates which store contains the user specified.
+
+        If the user isn't found in any IPasswordStore in the chain, None is
+        returned
+        """
+        ignore_auth_case = self.env.config.get('trac', 'ignore_auth_case')
+        user_stores = []
+        for store in self._password_store:
+            userlist = store.get_users()
+            if ignore_auth_case:
+                userlist = [u.lower() for u in userlist]
+            user_stores.append((store, userlist))
+            continue
+        user = ignore_auth_case and user.lower() or user
+        for store in user_stores:
+            if user in store[1]:
+                return store[0]
+            continue
+        return None
 
     def _notify(self, func, *args):
         func = 'user_' + func
