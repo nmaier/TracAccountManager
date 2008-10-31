@@ -39,8 +39,3 @@ class HttpAuthStore(Component):
     def has_user(self, user):
         return False
 
-    def set_password(self, user, password):
-        return False
-
-    def delete_user(self, user):
-        return False
