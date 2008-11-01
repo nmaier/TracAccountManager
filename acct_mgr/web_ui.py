@@ -66,7 +66,11 @@ def _create_user(req, env, check_permissions=True):
         error.message = 'The passwords must match.'
         raise error
 
-    mgr.set_password(user, password)
+    try:
+        mgr.set_password(user, password)
+    except TracError, e:
+        e.acctmge = acctmgr
+        raise e
 
     db = env.get_db_cnx()
     cursor = db.cursor()
@@ -396,7 +400,11 @@ class RegistrationModule(Component):
                 _create_user(req, self.env)
             except TracError, e:
                 data['registration_error'] = e.message
-                data['acctmgr'] = e.acctmgr
+                formdata = getattr(e, 'acctmgr', None)
+                if formdata:
+                    data['acctmgr'] = formdata
+                else:
+                    raise e
             else:
                 req.redirect(req.href.login())
         data['reset_password_enabled'] = \
