@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2005,2006,2007 Matthew Good <trac@matt-good.net>
 #
@@ -161,16 +161,16 @@ class HtDigestStore(AbstractPasswordFileStore):
         return 'htdigest'
 
     def prefix(self, user):
-        return '%s:%s:' % (user, self.realm)
+        return '%s:%s:' % (user, self.realm.encode('utf-8'))
 
     def userline(self, user, password):
-        return self.prefix(user) + htdigest(user, self.realm, password)
+        return self.prefix(user) + htdigest(user, self.realm.encode('utf-8'), password)
 
     def _check_userline(self, user, password, suffix):
-        return suffix == htdigest(user, self.realm, password)
+        return suffix == htdigest(user, self.realm.encode('utf-8'), password)
 
     def _get_users(self, filename):
-        _realm = self.realm
+        _realm = self.realm.encode('utf-8')
         f = open(filename)
         for line in f:
             args = line.split(':')[:2]

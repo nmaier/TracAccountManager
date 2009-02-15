@@ -40,9 +40,12 @@ class _BaseTestCase(unittest.TestCase):
         fd.close()
         return filename
 
-    def _do_password_test(self, filename, content):
+    def _init_password_file(self, filename, content):
         filename = self._create_file(filename, content=content)
         self.env.config.set('account-manager', 'password_file', filename)
+
+    def _do_password_test(self, filename, content):
+        self._init_password_file(filename, content)
         self.assertTrue(self.store.check_password('user', 'password'))
 
 
@@ -62,6 +65,19 @@ class HtDigestTestCase(_BaseTestCase):
     def test_file(self):
         self._do_password_test('test_file', 
                                'user:TestRealm:752b304cc7cf011d69ee9b79e2cd0866')
+
+    def test_unicode(self):
+        self.env.config.set('account-manager', 'htdigest_realm',
+                            u'UnicodeRealm\u4e60')
+        user = u'\u4e61'
+        password = u'\u4e62'
+        self._init_password_file('test_unicode', '')
+        self.store.set_password(user, password)
+        self.assertEqual([user], list(self.store.get_users()))
+        self.assertTrue(self.store.check_password(user, password))
+        self.assertTrue(self.store.delete_user(user))
+        self.assertEqual([], list(self.store.get_users()))
+
 
 class HtPasswdTestCase(_BaseTestCase):
     def setUp(self):
@@ -94,6 +110,16 @@ class HtPasswdTestCase(_BaseTestCase):
         self.store.set_password('user2', 'password2')
         self.assertTrue(self.store.check_password('user', 'password'))
         self.assertTrue(self.store.check_password('user2', 'password2'))
+
+    def test_unicode(self):
+        user = u'\u4e61'
+        password = u'\u4e62'
+        self._init_password_file('test_unicode', '')
+        self.store.set_password(user, password)
+        self.assertEqual([user], list(self.store.get_users()))
+        self.assertTrue(self.store.check_password(user, password))
+        self.assertTrue(self.store.delete_user(user))
+        self.assertEqual([], list(self.store.get_users()))
 
 
 def suite():
