@@ -22,7 +22,7 @@ class IPasswordHashMethod(Interface):
     def generate_hash(user, password):
         pass
 
-    def test_hash(user, password, hash):
+    def check_hash(user, password, hash):
         pass
 
 
@@ -49,7 +49,6 @@ class HtDigestHashMethod(Component):
         return ':'.join([realm, htdigest(user, realm, password)])
 
     def check_hash(self, user, password, hash):
-        user,password,realm = _encode(user, password, self.realm)
         return hash == self.generate_hash(user, password)
 
 

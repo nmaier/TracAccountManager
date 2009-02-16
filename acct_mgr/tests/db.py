@@ -71,6 +71,12 @@ class _BaseTestCase(unittest.TestCase):
         self.assertFalse(self.store.has_user('foo'))
         self.assertFalse(self.store.delete_user('foo'))
 
+    def test_unicode_username_and_password(self):
+        username = u'\u4e60'
+        password = u'\u4e61'
+        self.store.set_password(username, password)
+        self.assertTrue(self.store.check_password(username, password))
+
 
 class HtDigestTestCase(_BaseTestCase):
     def setUp(self):
