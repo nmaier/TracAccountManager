@@ -10,7 +10,7 @@
 # Author: Matthew Good <trac@matt-good.net>
 
 from binascii import hexlify
-import md5, sha
+from hashlib_compat import md5, sha1
 
 from trac.core import *
 from trac.config import Option
@@ -80,7 +80,7 @@ def htpasswd(password, salt_=None):
     if salt_.startswith('$apr1$'):
         return md5crypt(password, salt_[6:].split('$')[0], '$apr1$')
     elif salt_.startswith('{SHA}'):
-        return '{SHA}' + sha.new(password).digest().encode('base64')[:-1]
+        return '{SHA}' + sha1(password).digest().encode('base64')[:-1]
     elif crypt is None:
         # crypt passwords are only supported on Unix-like systems
         raise NotImplementedError('The "crypt" module is unavailable '
@@ -90,4 +90,4 @@ def htpasswd(password, salt_=None):
 
 def htdigest(user, realm, password):
     p = ':'.join([user, realm, password])
-    return md5.new(p).hexdigest()
+    return md5(p).hexdigest()
