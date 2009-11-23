@@ -553,12 +553,15 @@ class EmailVerificationModule(Component):
             # that anonymous users can't edit wiki pages and change or create
             # tickets. As such, this email verifying code won't be used on them
             return template, data, content_type
-        if req.session.get('email') != req.session.get('email_verification_sent_to'):
+
+        email = req.session.get('email')
+        # Only send verification if the user actually entered en email address.
+        if email and email != req.session.get('email_verification_sent_to'):
             req.session['email_verification_token'] = self._gen_token()
-            req.session['email_verification_sent_to'] = req.session.get('email')
+            req.session['email_verification_sent_to'] = email
             self._send_email(req)
             chrome.add_notice(req, Markup(tag.span(
-                    'An email has been sent to ', req.session['email'],
+                    'An email has been sent to ', email,
                     ' with a token to ',
                     tag.a(href=req.href.verify_email())(
                         'verify your new email address'))))
