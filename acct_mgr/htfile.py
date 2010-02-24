@@ -155,7 +155,7 @@ class HtDigestStore(AbstractPasswordFileStore):
 
     implements(IPasswordStore)
 
-    realm = Option('account-manager', 'htdigest_realm')
+    realm = Option('account-manager', 'htdigest_realm', '')
 
     def config_key(self):
         return 'htdigest'
