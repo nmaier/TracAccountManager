@@ -207,7 +207,7 @@ class AccountModule(Component):
         if req.authname and req.authname != 'anonymous':
             if req.session.get('force_change_passwd', False):
                 redirect_url = req.href.prefs('account')
-                if req.path_info != redirect_url:
+                if req.href(req.path_info) != redirect_url:
                     req.redirect(redirect_url)
         return (template, data, content_type)
 
