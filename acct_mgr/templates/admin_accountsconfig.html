@@ -44,6 +44,22 @@
         <input type="radio" name="force_passwd_change" value="false"
           checked="${not force_passwd_change and 'checked' or None}">No</input>
       </fieldset>
+
+      <fieldset>
+        <legend>Persistent Sessions</legend>
+        <label for="persistent_sessions">
+          Allow the user to be remembered across sessions without needing to
+          re-authenticate?<br/>
+          This is, user checks a "Remember Me" <tt>checkbox</tt> and, next time
+          he visits the site,<br/>
+          he'll be remembered and automatically authenticated.
+        </label>
+        <input type="radio" name="persistent_sessions" value="true"
+          checked="${persistent_sessions and 'checked' or None}">Yes</input>
+        <input type="radio" name="persistent_sessions" value="false"
+          checked="${not persistent_sessions and 'checked' or None}">No</input>
+      </fieldset>
+
       <div class="buttons">
         <input type="submit" name="save" value="Save" />
       </div>

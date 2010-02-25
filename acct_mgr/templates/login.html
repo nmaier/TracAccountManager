@@ -34,6 +34,10 @@
           <label for="password">Password:</label>
           <input type="password" id="password" name="password" class="textwidget" size="20" />
         </div>
+        <div py:if="persistent_sessions">
+          <input type="checkbox" id="rememberme" name="rememberme" value="1" />
+          <label for="rememberme">Remember me</label>
+        </div>
         <input type="submit" value="Login" />
 
         <p py:if="reset_password_enabled">

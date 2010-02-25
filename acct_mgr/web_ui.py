@@ -13,6 +13,7 @@ import base64
 import os
 import random
 import string
+import time
 
 from trac import perm, util
 from trac.core import *
@@ -455,17 +456,97 @@ class LoginModule(auth.LoginModule):
         if req.path_info.startswith('/login') and req.authname == 'anonymous':
             data = {
                 'referer': self._referer(req),
-                'reset_password_enabled': AccountModule(self.env).reset_password_enabled
+                'reset_password_enabled': AccountModule(self.env).reset_password_enabled,
+                'persistent_sessions': AccountManager(self.env).persistent_sessions
             }
             if req.method == 'POST':
                 data['login_error'] = 'Invalid username or password'
             return 'login.html', data, None
         return auth.LoginModule.process_request(self, req)
 
+    # overrides
+    def _get_name_for_cookie(self, req, cookie):
+        """Returns the user name for the current Trac session. Is called by
+           authenticate() when the cookie 'trac_auth' is sent by the browser.
+        """
+        
+        # Disable IP checking when a persistent session is available, as the
+        # user may have a dynamic IP adress and this would lead to the user 
+        # being logged out due to an IP address conflict.
+        checkIPSetting = self.check_ip and \
+                         AccountManager(self.env).persistent_sessions and \
+                         'trac_auth_session' in req.incookie
+        if checkIPSetting:
+          self.env.config.set('trac', 'check_auth_ip', False)
+        
+        name = auth.LoginModule._get_name_for_cookie(self, req, cookie)
+        
+        if checkIPSetting:
+          self.env.config.set('trac', 'check_auth_ip', True) # reenable ip checking
+        
+        if AccountManager(self.env).persistent_sessions and \
+           name and \
+           'trac_auth_session' in req.incookie:
+            # Persistent sessions enabled, the user is logged in ('name' exists)
+            # and has actually decided to use this feature (indicated by the '
+            # trac_auth_session' cookie existing).
+            # 
+            # NOTE: This method is called on every request.
+            
+            # Update the timestamp of the session so that it doesn't expire
+            self.env.log.debug('Updating session %s for user %s' %
+                                (cookie.value, name))
+                                
+            # Refresh in database
+            db = self.env.get_db_cnx()
+            cursor = db.cursor()
+            cursor.execute('UPDATE auth_cookie SET time=%s WHERE cookie=%s',
+                            (int(time.time()), cookie.value))
+            db.commit()
+            
+            # Refresh session cookie
+            # TODO Change session id (cookie.value) now and then as it otherwise
+            #   never would change at all (i.e. stay the same indefinitely and
+            #   therefore is vulnerable to be hacked).
+            req.outcookie['trac_auth'] = cookie.value
+            req.outcookie['trac_auth']['path'] = req.base_path or '/'
+            req.outcookie['trac_auth']['expires'] = 86400 * 30
+            if self.env.secure_cookies:
+                req.outcookie['trac_auth']['secure'] = True
+                
+            req.outcookie['trac_auth_session'] = 1
+            req.outcookie['trac_auth_session']['path'] = req.base_path or '/'
+            req.outcookie['trac_auth_session']['expires'] = 86400 * 30
+
+        return name
+
+    # overrides
     def _do_login(self, req):
         if not req.remote_user:
             req.redirect(self.env.abs_href())
-        return auth.LoginModule._do_login(self, req)
+        res = auth.LoginModule._do_login(self, req)
+        if req.args.get('rememberme', '0') == '1':
+            # Set the session to expire in 30 days (and not when to browser is
+            # closed - what is the default).
+            req.outcookie['trac_auth']['expires'] = 86400 * 30
+            
+            # This cookie is used to indicate that the user is actually using
+            # the "Remember me" feature. This is necessary for 
+            # '_get_name_for_cookie()'.
+            req.outcookie['trac_auth_session'] = 1
+            req.outcookie['trac_auth_session']['path'] = req.base_path or '/'
+            req.outcookie['trac_auth_session']['expires'] = 86400 * 30
+            
+        return res
+
+    # overrides
+    def _do_logout(self, req):
+        auth.LoginModule._do_logout(self, req)
+        
+        # Expire the persistent session cookie
+        req.outcookie['trac_auth_session'] = ''
+        req.outcookie['trac_auth_session']['path'] = req.base_path or '/'
+        req.outcookie['trac_auth_session']['expires'] = -10000
 
     def _remote_user(self, req):
         user = req.args.get('user')

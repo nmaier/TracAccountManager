@@ -132,6 +132,8 @@ class AccountManagerAdminPage(Component):
                         self.config.save()
             self.config.set('account-manager', 'force_passwd_change',
                             req.args.get('force_passwd_change'))
+            self.config.set('account-manager', 'persistent_sessions',
+                            req.args.get('persistent_sessions'))
             self.config.save()
         sections = []
         for store in self.account_manager.stores:
@@ -157,7 +159,8 @@ class AccountManagerAdminPage(Component):
         numstores = range(0, stores.numstores() + 1)
         data = {'sections': sections,
                 'numstores': numstores,
-                'force_passwd_change': self.account_manager.force_passwd_change}
+                'force_passwd_change': self.account_manager.force_passwd_change,
+                'persistent_sessions': self.account_manager.persistent_sessions}
         return 'admin_accountsconfig.html', data
 
     def _do_users(self, req):
