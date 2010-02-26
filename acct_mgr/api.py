@@ -77,6 +77,14 @@ class IAccountChangeListener(Interface):
         """User deleted
         """
 
+    def user_password_reset(self, user, email, password):
+        """User password reset
+        """
+
+    def user_email_verification_requested(self, user, token):
+        """User verification requested
+        """
+
 class AccountManager(Component):
     """The AccountManager component handles all user account management methods
     provided by the IPasswordStore interface.
@@ -254,4 +262,11 @@ class AccountManager(Component):
 
     def user_deleted(self, user):
         self.log.info('Deleted user: %s' % user)
+
+    def user_password_reset(self, user, email, password):
+        self.log.info('Password reset user: %s, %s'%(user, email))
+        
+    def user_email_verification_requested(self, user, token):
+        self.log.info('Email verification requested user: %s' % user)
+
 

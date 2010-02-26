@@ -50,6 +50,17 @@ class AccountChangeListener(Component):
             notifier = AccountChangeNotification(self.env)
             notifier.notify(username, 'Deleted User')
 
+    def user_password_reset(self, username, email, password):
+        notifier = PasswordResetNotification(self.env)
+        if email != notifier.email_map.get(username):
+            raise Exception('The email and username do not '
+                            'match a known account.')
+        notifier.notify(username, password)
+
+    def user_email_verification_requested(self, username, token):
+        notifier = EmailVerificationNotification(self.env)
+        notifier.notify(username, token)
+
 class AccountChangeNotification(NotifyEmail):
     template_name = 'user_changes_email.txt'
 
@@ -154,6 +165,74 @@ class AccountChangeNotification(NotifyEmail):
         self.server.sendmail(msg['From'], recipients, msgtext)
 
 
+class SingleUserNotification(NotifyEmail):
+    """Helper class used for account email notifications which should only be
+    sent to one persion, not including the rest of the normally CCed users
+    """
+    _username = None
+
+    def get_recipients(self, resid):
+        return ([resid],[])
+
+    def get_smtp_address(self, addr):
+        """Overrides `get_smtp_address` in order to prevent CCing users
+        other than the user whose password is being reset.
+        """
+        if addr == self._username:
+            return NotifyEmail.get_smtp_address(self, addr)
+        else:
+            return None
+
+    def notify(self, username, subject):
+        # save the username for use in `get_smtp_address`
+        self._username = username
+        old_public_cc = self.config.getbool('notification', 'use_public_cc')
+        # override public cc option so that the user's email is included in the To: field
+        self.config.set('notification', 'use_public_cc', 'true')
+        try:
+            NotifyEmail.notify(self, username, subject)
+        finally:
+            self.config.set('notification', 'use_public_cc', old_public_cc)
+
+
+class PasswordResetNotification(SingleUserNotification):
+    template_name = 'reset_password_email.txt'
+
+    def notify(self, username, password):
+        self.data.update({
+            'account': {
+                'username': username,
+                'password': password,
+            },
+            'login': {
+                'link': self.env.abs_href.login(),
+            }
+        })
+
+        projname = self.config.get('project', 'name')
+        subject = '[%s] Trac password reset for user: %s' % (projname, username)
+
+        SingleUserNotification.notify(self, username, subject)
+
+
+class EmailVerificationNotification(SingleUserNotification):
+    template_name = 'verify_email.txt'
+
+    def notify(self, username, token):
+        self.data.update({
+            'account': {
+                'username': username,
+                'token': token,
+            },
+            'verify': {
+                'link': self.env.abs_href.verify_email(token=token),
+            }
+        })
+
+        projname = self.config.get('project', 'name')
+        subject = '[%s] Trac email verification for user: %s' % (projname, username)
+
+        SingleUserNotification.notify(self, username, subject)
 
 
 class AccountChangeNotificationAdminPanel(Component):

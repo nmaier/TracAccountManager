@@ -17,8 +17,7 @@ import time
 
 from trac import perm, util
 from trac.core import *
-from trac.config import IntOption
-from trac.notification import NotificationSystem, NotifyEmail
+from trac.config import IntOption, BoolOption
 from trac.prefs import IPreferencePanelProvider
 from trac.web import auth
 from trac.web.api import IAuthenticator
@@ -101,56 +100,6 @@ def _create_user(req, env, check_permissions=True):
     db.commit()
 
 
-class SingleUserNotification(NotifyEmail):
-    """Helper class used for account email notifications which should only be
-    sent to one persion, not including the rest of the normally CCed users
-    """
-    _username = None
-
-    def get_recipients(self, resid):
-        return ([resid],[])
-
-    def get_smtp_address(self, addr):
-        """Overrides `get_smtp_address` in order to prevent CCing users
-        other than the user whose password is being reset.
-        """
-        if addr == self._username:
-            return NotifyEmail.get_smtp_address(self, addr)
-        else:
-            return None
-
-    def notify(self, username, subject):
-        # save the username for use in `get_smtp_address`
-        self._username = username
-        old_public_cc = self.config.getbool('notification', 'use_public_cc')
-        # override public cc option so that the user's email is included in the To: field
-        self.config.set('notification', 'use_public_cc', 'true')
-        try:
-            NotifyEmail.notify(self, username, subject)
-        finally:
-            self.config.set('notification', 'use_public_cc', old_public_cc)
-
-
-class PasswordResetNotification(SingleUserNotification):
-    template_name = 'reset_password_email.txt'
-
-    def notify(self, username, password):
-        self.data.update({
-            'account': {
-                'username': username,
-                'password': password,
-            },
-            'login': {
-                'link': self.env.abs_href.login(),
-            }
-        })
-
-        projname = self.config.get('project', 'name')
-        subject = '[%s] Trac password reset for user: %s' % (projname, username)
-
-        SingleUserNotification.notify(self, username, subject)
-
-
 class AccountModule(Component):
     """Allows users to change their password, reset their password if they've
     forgotten it, or delete their account.  The settings for the AccountManager
@@ -165,6 +114,10 @@ class AccountModule(Component):
                                 8, 'Length of the randomly-generated passwords '
                                 'created when resetting the password for an '
                                 'account.')
+
+    reset_password = BoolOption('account-manager', 'reset_password',
+                                True, 'Set to false if there is no email '
+                                'system setup.')
 
     def __init__(self):
         self._write_check(log=True)
@@ -224,7 +177,7 @@ class AccountModule(Component):
 
     def reset_password_enabled(self):
         return (self.env.is_component_enabled(AccountModule)
-                and NotificationSystem(self.env).smtp_enabled
+                and self.reset_password
                 and self._write_check())
     reset_password_enabled = property(reset_password_enabled)
 
@@ -268,15 +221,12 @@ class AccountModule(Component):
         if not email:
             return {'error': 'Email is required'}
 
-        notifier = PasswordResetNotification(self.env)
-
-        if email != notifier.email_map.get(username):
-            return {'error': 'The email and username do not '
-                             'match a known account.'}
-
         new_password = self._random_password()
-        notifier.notify(username, new_password)
         mgr = AccountManager(self.env)
+        try:
+            mgr._notify('password_reset', username, email, new_password)
+        except Exception, e:
+            return {'error': ','.join(e.args)}
         mgr.set_password(username, new_password)
         if mgr.force_passwd_change:
             db = self.env.get_db_cnx()
@@ -411,7 +361,7 @@ class RegistrationModule(Component):
                 req.redirect(req.href.login())
         data['reset_password_enabled'] = \
             (self.env.is_component_enabled(AccountModule)
-             and NotificationSystem(self.env).smtp_enabled)
+             and AccountModule(self.env).reset_password)
 
         return 'register.html', data, None
 
@@ -589,26 +539,6 @@ class LoginModule(auth.LoginModule):
         return [resource_filename(__name__, 'templates')]
 
 
-class EmailVerificationNotification(SingleUserNotification):
-    template_name = 'verify_email.txt'
-
-    def notify(self, username, token):
-        self.data.update({
-            'account': {
-                'username': username,
-                'token': token,
-            },
-            'verify': {
-                'link': self.env.abs_href.verify_email(token=token),
-            }
-        })
-
-        projname = self.config.get('project', 'name')
-        subject = '[%s] Trac email verification for user: %s' % (projname, username)
-
-        SingleUserNotification.notify(self, username, subject)
-
-
 class EmailVerificationModule(Component):
     implements(IRequestFilter, IRequestHandler)
 
@@ -640,7 +570,12 @@ class EmailVerificationModule(Component):
         if email and email != req.session.get('email_verification_sent_to'):
             req.session['email_verification_token'] = self._gen_token()
             req.session['email_verification_sent_to'] = email
-            self._send_email(req)
+            mgr = AccountManager(self.env)
+            mgr._notify(
+                'email_verification_requested', 
+                req.authname, 
+                req.session['email_verification_token']
+            )
             chrome.add_notice(req, Markup(tag.span(
                     'An email has been sent to ', email,
                     ' with a token to ',
@@ -659,7 +594,12 @@ class EmailVerificationModule(Component):
         elif req.method != 'POST':
             pass
         elif 'resend' in req.args:
-            self._send_email(req)
+            mgr = AccountManager(self.env)
+            mgr._notify(
+                'email_verification_requested', 
+                req.authname, 
+                req.session['email_verification_token']
+            )
             chrome.add_notice(req,
                     'A notification email has been resent to %s.',
                     req.session.get('email'))
@@ -676,7 +616,3 @@ class EmailVerificationModule(Component):
 
     def _gen_token(self):
         return base64.urlsafe_b64encode(urandom(6))
-
-    def _send_email(self, req):
-        notifier = EmailVerificationNotification(self.env)
-        notifier.notify(req.authname, req.session['email_verification_token'])
