@@ -10,8 +10,8 @@ from setuptools import setup
 
 setup(
     name = 'TracAccountManager',
-    version = '0.2.1',
-    author = 'Matthew Good',
+    version = '0.2.1-nm1',
+    author = 'Matthew Good, nmaier',
     author_email = 'trac@matt-good.net',
     url = 'http://trac-hacks.org/wiki/AccountManagerPlugin',
     description = 'User account management plugin for Trac',
