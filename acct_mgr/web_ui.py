@@ -67,6 +67,10 @@ def _create_user(req, env, check_permissions=True):
         error.message = 'The passwords must match.'
         raise error
 
+    if not email:
+        error.message = 'You must provide an Email';
+        raise error
+
     try:
         mgr.set_password(user, password)
     except TracError, e:
