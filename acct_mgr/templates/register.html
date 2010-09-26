@@ -24,41 +24,32 @@
       </div>
 
       <form method="post" id="acctmgr_registerform" action="">
-        <fieldset>
-          <legend>Required</legend>
-          <div>
-            <input type="hidden" name="action" value="create" />
-            <label>Username:
-              <input type="text" name="user" class="textwidget" size="20" value="${acctmgr.username}" />
-            </label>
-          </div>
-          <div>
-            <label>Password:
-              <input type="password" name="password" class="textwidget" size="20" />
-            </label>
-          </div>
-          <div>
-            <label>Confirm Password:
-              <input type="password" name="password_confirm"
-                     class="textwidget" size="20" />
-            </label>
-          </div>
-        </fieldset>
-        <fieldset>
-          <legend>Optional</legend>
-          <div>
-            <label>Name:
-              <input type="text" name="name" class="textwidget" size="20"  value="${acctmgr.name}"/>
-            </label>
-          </div>
-          <div>
-            <label>Email:
-              <input type="text" name="email" class="textwidget" size="20"  value="${acctmgr.email}"/>
-            </label>
-            <p py:if="reset_password_enabled">Entering your email address will
-            enable you to reset your password if you ever forget it.</p>
-          </div>
-        </fieldset>
+        <input type="hidden" name="action" value="create" />
+          <table border="0">
+            <tr>
+              <td><label for="user">Username:</label></td>
+              <td><input type="text" name="user" class="textwidget" id="password" size="20" value="${acctmgr.username}" /></td>
+            </tr>
+            <tr>
+              <td><label for="password">Password:</label></td>
+              <td><input type="password" name="password" id="password" class="textwidget" size="20" /></td>
+            </tr>
+            <tr>
+              <td><label for="password_confirm">Confirm Password:</label></td>
+              <td><input type="password" name="password_confirm" id="password_confirm"
+                class="textwidget" size="20" /></td>
+            </tr>
+            <tr>
+              <td><label for="name">Name:</label></td>
+              <td><input type="text" name="name" id="name" class="textwidget" size="20"  value="${acctmgr.name}"/></td>
+            </tr>
+            <tr>
+              <td><label for="email">Email:</label></td>
+              <td><input type="text" name="email" id="email" class="textwidget" size="20"  value="${acctmgr.email}"/></td>
+            </tr>
+            <tr py:if="reset_password_enabled"><td colspan="2"><span class="hint">Entering your email address will
+              enable you to reset your password if you ever forget it.</span></td></tr>
+        </table>
         <input type="submit" value="Create account" />
       </form>
     </div>
